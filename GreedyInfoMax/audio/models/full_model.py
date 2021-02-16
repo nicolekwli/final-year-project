@@ -115,6 +115,7 @@ class FullModel(nn.Module):
         else:
             raise Exception("Invalid option for opt.model_splits")
 
+    # called as model()
     def forward(self, x, filename=None, start_idx=None, n=6):
         model_input = x
 
