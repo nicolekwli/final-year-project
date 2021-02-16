@@ -12,16 +12,16 @@ def parse_architecture_args(parser):
         "1 - supervised training using the phone labels"
         "2 - supervised training using the speaker labels",
     )
-    # group.add_option(
-    #     "--model_splits",
-    #     type="int",
-    #     default=6,
-    #     help="Number of individually trained 'layers' that the original model should be split into "
-    #          "(options: "
-    #          "1 - corresponds to the CPC architecture from Oord et al.,"
-    #          "5 - training the last convolutional and the autoregressive layer together,"
-    #          "6 - Greedy InfoMax as presented in the paper, every layer trained individually)",
-    # )
+    group.add_option(
+        "--model_splits",
+        type="int",
+        default=6,
+        help="Number of individually trained 'layers' that the original model should be split into "
+             "(options: "
+             "1 - corresponds to the CPC architecture from Oord et al.,"
+             "5 - training the last convolutional and the autoregressive layer together,"
+             "6 - Greedy InfoMax as presented in the paper, every layer trained individually)",
+    )
     group.add_option(
         "--use_autoregressive",
         action="store_true",
