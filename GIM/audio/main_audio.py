@@ -49,7 +49,7 @@ def train(opt, model):
 
             model_input = audio.to(opt.device)
 
-            loss = model(model_input, filename, start_idx, n=opt.train_layer) # model gives predictions ..?
+            loss = model(model_input, filename, start_idx, n=opt.train_layer) 
             loss = torch.mean(loss, 0)  # average over the losses from different GPUs
 
             model.zero_grad() # set the gradients to zero before starting to do backpropragation because PyTorch accumulates the gradients on subsequent backward passes

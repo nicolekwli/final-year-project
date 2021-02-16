@@ -4,7 +4,7 @@ import os
 import torch
 import numpy as np
 
-from GreedyInfoMax.audio.arg_parser import (
+from GIM.audio.arg_parser import (
     reload_args,
     architecture_args,
     GIM_args,
