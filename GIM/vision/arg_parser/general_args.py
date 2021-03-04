@@ -29,7 +29,7 @@ def parse_general_args(parser):
         "-i",
         "--data_input_dir",
         type="string",
-        default="$WORK/datasets/",
+        default="./datasets",
         help="Directory to store bigger datafiles (dataset and models)",
     )
     parser.add_option(

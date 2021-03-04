@@ -151,6 +151,8 @@ class ResNet_Encoder(nn.Module):
 
 
     def forward(self, x, n_patches_x, n_patches_y, label, patchify_right_now=True):
+        # print("x before")
+        # print(x.shape)
         if self.patchify and self.encoder_num == 0 and patchify_right_now:
             x = (
                 x.unfold(2, self.patch_size, self.patch_size // self.overlap)
@@ -162,12 +164,16 @@ class ResNet_Encoder(nn.Module):
             x = x.reshape(
                 x.shape[0] * x.shape[1] * x.shape[2], x.shape[3], x.shape[4], x.shape[5]
             )
-
+        # print("x after")
+        # print(x.shape)
         z = self.model(x)
 
         out = F.adaptive_avg_pool2d(z, 1)
         out = out.reshape(-1, n_patches_x, n_patches_y, out.shape[1])
         out = out.permute(0, 3, 1, 2).contiguous()
+
+        # print("out")
+        # print(out.shape)
 
         accuracy = torch.zeros(1)
         if self.calc_loss and self.opt.loss == 0:
