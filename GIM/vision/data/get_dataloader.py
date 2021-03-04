@@ -11,6 +11,12 @@ def get_dataloader(opt):
         train_loader, train_dataset, supervised_loader, supervised_dataset, test_loader, test_dataset = get_stl10_dataloader(
             opt
         )
+
+    elif opt.dataset == "MNIST":
+        train_loader, train_dataset, supervised_loader, supervised_dataset, test_loader, test_dataset = get_MNIST_dataloader(
+            opt
+        )
+
     else:
         raise Exception("Invalid option")
 
@@ -23,6 +29,8 @@ def get_dataloader(opt):
         test_dataset,
     )
 
+def get_MNIST_dataloader(opt):
+    pass
 
 def get_stl10_dataloader(opt):
     base_folder = os.path.join(opt.data_input_dir, "stl10_binary")

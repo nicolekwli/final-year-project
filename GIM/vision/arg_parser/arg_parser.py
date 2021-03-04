@@ -4,6 +4,8 @@ import os
 import torch
 import numpy as np
 
+import torch.distributed as dist
+
 from GIM.vision.arg_parser import reload_args, GIM_args, general_args
 
 
@@ -18,9 +20,6 @@ def parse_args():
     (opt, _) = parser.parse_args()
 
     opt.time = time.ctime()
-
-    # keep track of whether the current process is the `master` process (totally optional, but I find it useful for data laoding, logging, etc.)
-    opt.is_master = opt.local_rank == 0
 
     # Device configuration
     opt.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

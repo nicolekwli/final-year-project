@@ -8,8 +8,8 @@ def parse_general_args(parser):
     parser.add_option(
         "--dataset",
         type="string",
-        default="stl10",
-        help="Dataset to use for training, default: stl10",
+        default="MNIST",
+        help="Dataset to use for training, original: stl10, default: MNIST",
     )
     parser.add_option(
         "--download_dataset",
@@ -73,6 +73,6 @@ def parse_general_args(parser):
         "(be careful, this can overwrite previous results); "
         "otherwise saves logs according to time-stamp",
     )
-    parser.add_argument('--local_rank', type=int, default=-1, metavar='N', help='Local process rank.')  # you need this argument in your scripts for DDP to work
+    parser.add_option('--local_rank', type=int, default=-1, metavar='N', help='Local process rank.')  # you need this argument in your scripts for DDP to work
 
     return parser

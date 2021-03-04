@@ -1,5 +1,7 @@
 import torch
 
+from torch.nn.parallel import DistributedDataParallel as DDP
+
 from GIM.vision.models import FullModel, ClassificationModel
 from GIM.utils import model_utils
 
