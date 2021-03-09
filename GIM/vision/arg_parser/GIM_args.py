@@ -28,6 +28,7 @@ def parse_GIM_args(parser):
         "--train_module",
         type="int",
         default=3,
+        # default=1,
         help="Index of the module to be trained individually (0-2), "
         "or training network as one (3)",
     )

@@ -59,5 +59,5 @@ def val_by_latent_speakers(opt, dataset, model, epoch, step):
             speaker_labels[idx],
             "{}_{}_model_{}".format(epoch, step, idx),
         )
-
+    print("setting to train")
     model.train()

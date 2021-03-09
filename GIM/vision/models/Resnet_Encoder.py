@@ -92,6 +92,15 @@ class ResNet_Encoder(nn.Module):
 
         self.model = nn.Sequential()
 
+        ## ADDED DO THAT ALL WE DO AS CONV 
+        self.conv1 = nn.Conv2d(
+            in_channels=1, #self.input_shape.channels
+            out_channels=256,
+            kernel_size=(5, 5),
+            stride=(1, 1),
+            padding=(2, 2),
+        )
+
         if encoder_num == 0:
             self.model.add_module(
                 "Conv1",
@@ -166,7 +175,9 @@ class ResNet_Encoder(nn.Module):
             )
         # print("x after")
         # print(x.shape)
-        z = self.model(x)
+        
+        # z = self.model(x)
+        z = self.conv1(x)
 
         out = F.adaptive_avg_pool2d(z, 1)
         out = out.reshape(-1, n_patches_x, n_patches_y, out.shape[1])

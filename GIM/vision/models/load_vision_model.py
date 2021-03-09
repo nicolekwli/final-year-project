@@ -40,7 +40,7 @@ def load_classification_model(opt):
     else:
         in_channels = 1024
 
-    if opt.dataset == "stl10":
+    if opt.dataset == "MNIST":
         num_classes = 10
     else:
         raise Exception("Invalid option")

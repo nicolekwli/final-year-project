@@ -45,6 +45,7 @@ def train(opt, model):
     starttime = time.time()
     cur_train_module = opt.train_module
 
+
     for epoch in range(opt.start_epoch, opt.num_epochs + opt.start_epoch):
 
         loss_epoch = [0 for i in range(opt.model_splits)]
@@ -91,18 +92,22 @@ def train(opt, model):
             for idx, cur_losses in enumerate(loss):
                 if len(loss) == 1 and opt.model_splits != 1:
                     idx = cur_train_module
-                    
-                optimizer[idx].step()
+                
+                #optimizer[idx].step()
+                optimizer[0].step()
 
                 print_loss = cur_losses.item()
-                print_acc = accuracy[idx].item()
+                # print_acc = accuracy[idx].item()
+                print_acc = accuracy[0].item()
                 if step % print_idx == 0:
                     print("\t \t Loss: \t \t {:.4f}".format(print_loss))
                     if opt.loss == 1:
                         print("\t \t Accuracy: \t \t {:.4f}".format(print_acc))
 
-                loss_epoch[idx] += print_loss
-                loss_updates[idx] += 1
+                # loss_epoch[idx] += print_loss
+                # loss_updates[idx] += 1
+                loss_epoch[0] += print_loss
+                loss_updates[0] += 1
 
         if opt.validate:
             validation_loss = validate(opt, model, test_loader) #test_loader corresponds to validation set here

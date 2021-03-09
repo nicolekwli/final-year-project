@@ -8,7 +8,7 @@ def distribute_over_GPUs(opt, model, num_GPU):
     if opt.device.type != "cpu":
         if num_GPU is None:
             model = nn.DataParallel(model)
-            num_GPU = torch.cuda.device_count()
+            num_GPU = torch.cuda.device_count() 
             opt.batch_size_multiGPU = opt.batch_size * num_GPU
         else:
             assert (

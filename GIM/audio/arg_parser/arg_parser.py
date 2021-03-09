@@ -25,8 +25,12 @@ def parse_args():
 
     opt.time = time.ctime()
 
+    # for more processes -> nodes
+    #opt.is_master = opt.local_rank == 0
+
     # Device configuration
-    opt.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    #opt.device = torch.cuda.device(opt.local_rank if torch.cuda.is_available() else "cpu")
+    opt.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     opt.experiment = "audio"
 

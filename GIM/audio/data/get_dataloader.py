@@ -51,6 +51,8 @@ def get_libri_dataloaders(opt):
             ),
         )
 
+        print("train a done ")
+
         test_dataset = librispeech.LibriDataset(
             opt,
             os.path.join(
@@ -62,6 +64,8 @@ def get_libri_dataloaders(opt):
             ),
         )
 
+        print("train b done ")
+
     train_loader = torch.utils.data.DataLoader(
         dataset=train_dataset,
         batch_size=opt.batch_size_multiGPU,
@@ -69,6 +73,7 @@ def get_libri_dataloaders(opt):
         drop_last=True,
         num_workers=num_workers,
     )
+    print("load a done ")
 
     test_loader = torch.utils.data.DataLoader(
         dataset=test_dataset,
@@ -77,5 +82,7 @@ def get_libri_dataloaders(opt):
         drop_last=True,
         num_workers=num_workers,
     )
+
+    print("load b done ")
 
     return train_loader, train_dataset, test_loader, test_dataset

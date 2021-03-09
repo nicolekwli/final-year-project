@@ -23,8 +23,12 @@ def train(opt, model):
     starttime = time.time()
 
     for epoch in range(opt.start_epoch, opt.num_epochs + opt.start_epoch):
+        print("epoch: " + str(epoch))
+        
 
         loss_epoch = [0 for i in range(opt.model_splits)] # default is 6 - no of individually trained 'layers' that the original model should be split into
+
+        print(opt.model_splits)
 
         for step, (audio, filename, _, start_idx) in enumerate(train_loader):
 
@@ -33,6 +37,8 @@ def train(opt, model):
                 val_by_latent_speakers.val_by_latent_speakers(
                     opt, train_dataset, model, epoch, step
                 )
+
+            print("plot done")
 
             if step % print_idx == 0:
                 print(
@@ -45,6 +51,7 @@ def train(opt, model):
                     )
                 )
 
+            print("start")
             starttime = time.time()
 
             model_input = audio.to(opt.device)
@@ -69,6 +76,7 @@ def train(opt, model):
 
                 loss_epoch[idx] += print_loss
 
+        print("for done")
         logs.append_train_loss([x / total_step for x in loss_epoch])
 
         # validate by testing the CPC performance on the validation set
@@ -77,12 +85,16 @@ def train(opt, model):
             logs.append_val_loss(validation_loss)
 
         logs.create_log(model, epoch=epoch, optimizer=optimizer)
+        print("logs and validate")
+    print("train done")
 
 
 if __name__ == "__main__":
 
     opt = arg_parser.parse_args()
+    print("parsing args done")
     arg_parser.create_log_path(opt)
+    print("created logs path")
 
     # set random seeds
     torch.manual_seed(opt.seed)
@@ -95,11 +107,13 @@ if __name__ == "__main__":
 
     # initialize logger
     logs = logger.Logger(opt)
+    print("logger done")
 
     # get datasets and dataloaders
     train_loader, train_dataset, test_loader, test_dataset = get_dataloader.get_libri_dataloaders(
         opt
     )
+    print("data done")
 
     try:
         # Train the model

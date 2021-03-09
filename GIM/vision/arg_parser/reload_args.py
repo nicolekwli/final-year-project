@@ -17,12 +17,12 @@ def parser_reload_args(parser):
         "--model_path",
         type="string",
         default=".",
-        help="Directory of the saved model (path within --data_input_dir)",
+        help="Directory of the saved model (path within --data_input_dir)", # ./datasets
     )
     group.add_option(
         "--model_num",
         type="string",
-        default="100",
+        default="100", # 284
         help="Number of the saved model to be used for training the linear classifier"
         "(loaded using model_path + model_X.ckpt, where X is the model_num passed here)",
     )
