@@ -73,6 +73,5 @@ def parse_general_args(parser):
         "(be careful, this can overwrite previous results); "
         "otherwise saves logs according to time-stamp",
     )
-    parser.add_option('--local_rank', type=int, default=-1, metavar='N', help='Local process rank.')  # you need this argument in your scripts for DDP to work
 
     return parser

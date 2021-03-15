@@ -40,7 +40,8 @@ def train(opt, model):
     total_step = len(train_loader)
     model.module.switch_calc_loss(True)
 
-    print_idx = 100
+    print_idx = 200
+    log_idx = 20
 
     starttime = time.time()
     cur_train_module = opt.train_module
@@ -114,7 +115,8 @@ def train(opt, model):
             logs.append_val_loss(validation_loss)
 
         logs.append_train_loss([x / loss_updates[idx] for idx, x in enumerate(loss_epoch)])
-        logs.create_log(model, epoch=epoch, optimizer=optimizer)
+        if epoch % log_idx == 0:
+            logs.create_log(model, epoch=epoch, optimizer=optimizer)
 
 
 if __name__ == "__main__":

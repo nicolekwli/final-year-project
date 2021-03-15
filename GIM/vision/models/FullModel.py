@@ -88,7 +88,6 @@ class FullVisionModel(torch.nn.Module):
         return full_model, encoder, autoregressor
 
     def forward(self, x, label, n=3):
-    # def forward(self, x, label, n=3):
         model_input = x
 
         if self.opt.device.type != "cpu":

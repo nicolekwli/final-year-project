@@ -93,45 +93,69 @@ class ResNet_Encoder(nn.Module):
         self.model = nn.Sequential()
 
         ## ADDED DO THAT ALL WE DO AS CONV 
-        self.conv1 = nn.Conv2d(
-            in_channels=1, #self.input_shape.channels
-            out_channels=256,
-            kernel_size=(5, 5),
-            stride=(1, 1),
-            padding=(2, 2),
-        )
+        # self.conv1 = nn.Conv2d(
+        #     in_channels=1, #self.input_shape.channels
+        #     out_channels=64,
+        #     kernel_size=(5, 5),
+        #     stride=(1, 1),
+        #     padding=(2, 2),
+        # )
 
-        if encoder_num == 0:
-            self.model.add_module(
+        # self.conv2 = nn.Conv2d(
+        #     in_channels=64, #self.input_shape.channels
+        #     out_channels=256,
+        #     kernel_size=(3, 3),
+        #     stride=(1, 1),
+        #     padding=(1, 1),
+        # )
+
+        self.model.add_module(
                 "Conv1",
                 nn.Conv2d(
-                    input_dims, self.filter[0], kernel_size=5, stride=1, padding=2
+                    1, 16, kernel_size=5, stride=1, padding=2
                 ),
             )
-            self.in_planes = self.filter[0]
-            self.first_stride = 1
-        elif encoder_num > 2:
-            self.in_planes = self.filter[0] * block.expansion
-            self.first_stride = 2
-        else:
-            self.in_planes = (self.filter[0] // 2) * block.expansion
-            self.first_stride = 2
+        self.model.add_module(
+                "Conv2",
+                nn.Conv2d(
+                    16, 32, kernel_size=3, stride=1, padding=1
+                ),
+            )
 
-        for idx in range(len(num_blocks)):
-            self.model.add_module(
-                "layer {}".format((idx)),
-                self._make_layer(
-                    block, self.filter[idx], num_blocks[idx], stride=self.first_stride
-                ),
-            )
-            self.first_stride = 2
+        # if encoder_num == 0:
+        #     self.model.add_module(
+        #         "Conv1",
+        #         nn.Conv2d(
+        #             input_dims, self.filter[0], kernel_size=5, stride=1, padding=2
+        #         ),
+        #     )
+        #     self.in_planes = self.filter[0]
+        #     self.first_stride = 1
+        # elif encoder_num > 2:
+        #     self.in_planes = self.filter[0] * block.expansion
+        #     self.first_stride = 2
+        # else:
+        #     self.in_planes = (self.filter[0] // 2) * block.expansion
+        #     self.first_stride = 2
+
+        # for idx in range(len(num_blocks)):
+        #     self.model.add_module(
+        #         "layer {}".format((idx)),
+        #         self._make_layer(
+        #             block, self.filter[idx], num_blocks[idx], stride=self.first_stride
+        #         ),
+        #     )
+        #     self.first_stride = 2
 
         ## loss module is always present, but only gets used when training GreedyInfoMax modules
         if self.opt.loss == 0: # InfoNCE
             self.loss = InfoNCE_Loss.InfoNCE_Loss(
                 opt,
-                in_channels=self.in_planes,
-                out_channels=self.in_planes
+                #in_channels=self.in_planes,
+                #out_channels=self.in_planes
+                in_channels = 32,
+                out_channels = 32
+
             )
         elif self.opt.loss == 1:
             self.loss = Supervised_Loss.Supervised_Loss(opt, self.in_planes, True)
@@ -175,16 +199,14 @@ class ResNet_Encoder(nn.Module):
             )
         # print("x after")
         # print(x.shape)
-        
-        # z = self.model(x)
-        z = self.conv1(x)
+
+        z = self.model(x)
+        # z = F.relu(F.max_pool2d(self.conv1(x),2)) # works
+        # z = F.relu(F.max_pool2d(self.conv2(z),2))
 
         out = F.adaptive_avg_pool2d(z, 1)
         out = out.reshape(-1, n_patches_x, n_patches_y, out.shape[1])
         out = out.permute(0, 3, 1, 2).contiguous()
-
-        # print("out")
-        # print(out.shape)
 
         accuracy = torch.zeros(1)
         if self.calc_loss and self.opt.loss == 0:
