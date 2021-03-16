@@ -93,34 +93,35 @@ class ResNet_Encoder(nn.Module):
         self.model = nn.Sequential()
 
         ## ADDED DO THAT ALL WE DO AS CONV 
-        # self.conv1 = nn.Conv2d(
-        #     in_channels=1, #self.input_shape.channels
-        #     out_channels=64,
-        #     kernel_size=(5, 5),
-        #     stride=(1, 1),
-        #     padding=(2, 2),
-        # )
-
-        # self.conv2 = nn.Conv2d(
-        #     in_channels=64, #self.input_shape.channels
-        #     out_channels=256,
-        #     kernel_size=(3, 3),
-        #     stride=(1, 1),
-        #     padding=(1, 1),
-        # )
-
         self.model.add_module(
                 "Conv1",
-                nn.Conv2d(
-                    1, 16, kernel_size=5, stride=1, padding=2
-                ),
+                nn.Sequential(
+                    nn.Conv2d(1, 64, kernel_size=5, stride=1, padding=2),
+                    # nn.BatchNorm2d(64),
+                    nn.ReLU(),
+                    nn.MaxPool2d(kernel_size=2, stride=2)),
             )
         self.model.add_module(
                 "Conv2",
-                nn.Conv2d(
-                    16, 32, kernel_size=3, stride=1, padding=1
-                ),
+                nn.Sequential(
+                    nn.Conv2d(64, 256, kernel_size=3, stride=1, padding=1),
+                    # nn.BatchNorm2d(256),
+                    nn.ReLU(),
+                    nn.MaxPool2d(kernel_size=2, stride=2)),
             )
+
+        # self.model.add_module(
+        #         "Conv1",
+        #         nn.Conv2d(
+        #             1, 64, kernel_size=5, stride=1, padding=2
+        #         ),
+        #     )
+        # self.model.add_module(
+        #         "Conv2",
+        #         nn.Conv2d(
+        #             64, 256, kernel_size=3, stride=1, padding=1
+        #         ),
+        #     )
 
         # if encoder_num == 0:
         #     self.model.add_module(
@@ -153,12 +154,13 @@ class ResNet_Encoder(nn.Module):
                 opt,
                 #in_channels=self.in_planes,
                 #out_channels=self.in_planes
-                in_channels = 32,
-                out_channels = 32
+                in_channels = 256,
+                out_channels = 256
 
             )
         elif self.opt.loss == 1:
-            self.loss = Supervised_Loss.Supervised_Loss(opt, self.in_planes, True)
+            # self.loss = Supervised_Loss.Supervised_Loss(opt, self.in_planes, True)
+            self.loss = Supervised_Loss.Supervised_Loss(opt, 256, True)
         else:
             raise Exception("Invalid option")
 
