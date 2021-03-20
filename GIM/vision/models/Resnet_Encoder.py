@@ -66,6 +66,15 @@ class PreActBottleneckNoBN(nn.Module):
         out += shortcut
         return out
 
+class MyConv(nn.Module):
+    def __init__(self, in_size, out_size, kernel_size, stride, padding):
+        super(MyConv, self).__init__()
+        self.conv1 = nn.Conv2d(in_size, out_size, kernel_size, stride, padding)
+
+    def forward(self, x):
+        out = F.relu(self.conv1(x))
+        out = F.max_pool2d(out, kernel_size=2, stride=2)
+        return out
 
 class ResNet_Encoder(nn.Module):
     def __init__(
@@ -75,7 +84,7 @@ class ResNet_Encoder(nn.Module):
         num_blocks,
         filter,
         encoder_num,
-        patch_size=16,
+        patch_size=16, # 16
         input_dims=3,
         calc_loss=False,
     ):
@@ -93,35 +102,38 @@ class ResNet_Encoder(nn.Module):
         self.model = nn.Sequential()
 
         ## ADDED DO THAT ALL WE DO AS CONV 
-        self.model.add_module(
-                "Conv1",
-                nn.Sequential(
-                    nn.Conv2d(1, 64, kernel_size=5, stride=1, padding=2),
-                    # nn.BatchNorm2d(64),
-                    nn.ReLU(),
-                    nn.MaxPool2d(kernel_size=2, stride=2)),
-            )
-        self.model.add_module(
-                "Conv2",
-                nn.Sequential(
-                    nn.Conv2d(64, 256, kernel_size=3, stride=1, padding=1),
-                    # nn.BatchNorm2d(256),
-                    nn.ReLU(),
-                    nn.MaxPool2d(kernel_size=2, stride=2)),
-            )
-
         # self.model.add_module(
         #         "Conv1",
-        #         nn.Conv2d(
-        #             1, 64, kernel_size=5, stride=1, padding=2
-        #         ),
+        #         nn.Sequential(
+        #             nn.Conv2d(1, 28, kernel_size=5, stride=1, padding=2),
+        #             nn.ReLU(),
+        #             nn.MaxPool2d(kernel_size=2, stride=2)),
         #     )
         # self.model.add_module(
         #         "Conv2",
-        #         nn.Conv2d(
-        #             64, 256, kernel_size=3, stride=1, padding=1
-        #         ),
+        #         nn.Sequential(
+        #             nn.Conv2d(28, 64, kernel_size=3, stride=1, padding=1),
+        #             nn.ReLU(),
+        #             nn.MaxPool2d(kernel_size=2, stride=2)),
         #     )
+        if encoder_num == 0:
+            self.model.add_module(
+                    "Conv1",
+                    MyConv(input_dims,self.filter[0],5,1,2),
+                )
+            self.in_planes = self.filter[0]
+        else:
+            self.model.add_module(
+                    "Conv1",
+                    MyConv(28,self.filter[0],3,1,1),
+                )
+
+        self.in_planes = self.filter[0]
+        # self.model.add_module(
+        #         "Conv2",
+        #         MyConv(64,256,3,1,1),
+        #     )
+
 
         # if encoder_num == 0:
         #     self.model.add_module(
@@ -152,15 +164,12 @@ class ResNet_Encoder(nn.Module):
         if self.opt.loss == 0: # InfoNCE
             self.loss = InfoNCE_Loss.InfoNCE_Loss(
                 opt,
-                #in_channels=self.in_planes,
-                #out_channels=self.in_planes
-                in_channels = 256,
-                out_channels = 256
-
+                in_channels=self.in_planes,
+                out_channels=self.in_planes
             )
         elif self.opt.loss == 1:
             # self.loss = Supervised_Loss.Supervised_Loss(opt, self.in_planes, True)
-            self.loss = Supervised_Loss.Supervised_Loss(opt, 256, True)
+            self.loss = Supervised_Loss.Supervised_Loss(opt, 64, True)
         else:
             raise Exception("Invalid option")
 
@@ -186,8 +195,6 @@ class ResNet_Encoder(nn.Module):
 
 
     def forward(self, x, n_patches_x, n_patches_y, label, patchify_right_now=True):
-        # print("x before")
-        # print(x.shape)
         if self.patchify and self.encoder_num == 0 and patchify_right_now:
             x = (
                 x.unfold(2, self.patch_size, self.patch_size // self.overlap)
@@ -199,12 +206,8 @@ class ResNet_Encoder(nn.Module):
             x = x.reshape(
                 x.shape[0] * x.shape[1] * x.shape[2], x.shape[3], x.shape[4], x.shape[5]
             )
-        # print("x after")
-        # print(x.shape)
 
         z = self.model(x)
-        # z = F.relu(F.max_pool2d(self.conv1(x),2)) # works
-        # z = F.relu(F.max_pool2d(self.conv2(z),2))
 
         out = F.adaptive_avg_pool2d(z, 1)
         out = out.reshape(-1, n_patches_x, n_patches_y, out.shape[1])

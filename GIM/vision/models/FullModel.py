@@ -25,9 +25,9 @@ class FullVisionModel(torch.nn.Module):
     def _create_full_model(self, opt):
 
         # block_dims = [3, 4, 6]
-        block_dims = [3]
+        block_dims = [1, 1] 
         # num_channels = [64, 128, 256]
-        num_channels = [64]
+        num_channels = [28, 64]
 
         full_model = nn.ModuleList([])
         encoder = nn.ModuleList([])
@@ -89,6 +89,7 @@ class FullVisionModel(torch.nn.Module):
 
     def forward(self, x, label, n=3):
         model_input = x
+        n = 2
 
         if self.opt.device.type != "cpu":
             cur_device = x.get_device()
@@ -101,8 +102,8 @@ class FullVisionModel(torch.nn.Module):
         # accuracies = torch.zeros(1, self.opt.model_splits, device=cur_device) #first dimension for multi-GPU training
 
         # hardcoded
-        loss = torch.zeros(1, 1, device=cur_device) #first dimension for multi-GPU training
-        accuracies = torch.zeros(1, 1, device=cur_device) #first dimension for multi-GPU training
+        loss = torch.zeros(1, 2, device=cur_device) #first dimension for multi-GPU training
+        accuracies = torch.zeros(1, 2, device=cur_device) #first dimension for multi-GPU training
 
         for idx, module in enumerate(self.encoder[: n+1]):
             h, z, cur_loss, cur_accuracy, n_patches_x, n_patches_y = module(

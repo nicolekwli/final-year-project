@@ -39,8 +39,6 @@ class InfoNCE_Loss(nn.Module):
                     )
 
     def forward(self, z, c, skip_step=1):
-        # print("z")
-        # print(z.shape)
 
         batch_size = z.shape[0]
 
@@ -53,8 +51,6 @@ class InfoNCE_Loss(nn.Module):
 
         # For each element in c, contrast with elements below
         for k in range(1, self.k_predictions + 1):
-            # print("weird x")
-            # print(z[:, :, (k + skip_step) :, :].shape)
 
             ### compute log f(c_t, x_{t+k}) = z^T_{t+k} W_k c_t
             # compute z^T_{t+k} W_k:

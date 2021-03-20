@@ -8,7 +8,7 @@ def parse_GIM_args(parser):
     group.add_option(
         "--prediction_step",
         type="int",
-        default=5,
+        default=3, #5
         help="Time steps to predict into future",
     )
     group.add_option(

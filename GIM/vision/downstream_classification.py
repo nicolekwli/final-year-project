@@ -31,7 +31,7 @@ def train_logistic_regression(opt, context_model, classification_model, train_lo
                 _, _, z = context_model(model_input)
             else:
                 with torch.no_grad():
-                    _, _, z, _ = context_model(model_input, target)
+                    _, _, z, _ = context_model(model_input, target) # z is the loss values
                 z = z.detach() #double security that no gradients go to representation learning part of model
 
             prediction = classification_model(z)

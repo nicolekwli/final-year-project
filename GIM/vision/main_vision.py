@@ -82,7 +82,7 @@ def train(opt, model):
             model.zero_grad()
 
             for idx, cur_losses in enumerate(loss):
-                if len(loss) == 1 and opt.model_splits != 1:
+                if len(loss) == 1 and opt.model_splits != 1: # 1 (normal end-to-end backprop) or 3 (default used in experiments of paper)
                     idx = cur_train_module
                     
                 if idx == len(loss) - 1:
@@ -94,21 +94,18 @@ def train(opt, model):
                 if len(loss) == 1 and opt.model_splits != 1:
                     idx = cur_train_module
                 
-                #optimizer[idx].step()
-                optimizer[0].step()
+                optimizer[idx].step()
 
                 print_loss = cur_losses.item()
-                # print_acc = accuracy[idx].item()
-                print_acc = accuracy[0].item()
+                print_acc = accuracy[idx].item()
                 if step % print_idx == 0:
                     print("\t \t Loss: \t \t {:.4f}".format(print_loss))
                     if opt.loss == 1:
                         print("\t \t Accuracy: \t \t {:.4f}".format(print_acc))
 
-                # loss_epoch[idx] += print_loss
-                # loss_updates[idx] += 1
-                loss_epoch[0] += print_loss
-                loss_updates[0] += 1
+                loss_epoch[idx] += print_loss
+                loss_updates[idx] += 1
+
 
         if opt.validate:
             validation_loss = validate(opt, model, test_loader) #test_loader corresponds to validation set here
