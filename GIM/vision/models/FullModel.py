@@ -98,12 +98,13 @@ class FullVisionModel(torch.nn.Module):
 
         n_patches_x, n_patches_y = None, None
 
-        # loss = torch.zeros(1, self.opt.model_splits, device=cur_device) #first dimension for multi-GPU training
-        # accuracies = torch.zeros(1, self.opt.model_splits, device=cur_device) #first dimension for multi-GPU training
+        if self.opt.model_splits == 1:
+            loss = torch.zeros(1, self.opt.model_splits, device=cur_device) #first dimension for multi-GPU training
+            accuracies = torch.zeros(1, self.opt.model_splits, device=cur_device) #first dimension for multi-GPU training
 
-        # hardcoded
-        loss = torch.zeros(1, 2, device=cur_device) #first dimension for multi-GPU training
-        accuracies = torch.zeros(1, 2, device=cur_device) #first dimension for multi-GPU training
+        elif self.opt.model_splits == 3:
+            loss = torch.zeros(1, 2, device=cur_device) #first dimension for multi-GPU training
+            accuracies = torch.zeros(1, 2, device=cur_device) #first dimension for multi-GPU training
 
         for idx, module in enumerate(self.encoder[: n+1]):
             h, z, cur_loss, cur_accuracy, n_patches_x, n_patches_y = module(

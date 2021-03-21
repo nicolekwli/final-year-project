@@ -39,7 +39,7 @@ def get_MNIST_dataloader(opt):
     aug = {
         "MNIST": {
             # "randcrop": 64,
-            "randcrop": 28,
+            # "randcrop": 28,
             "flip": True,
             "grayscale": opt.grayscale,
             "mean": [0.4313, 0.4156, 0.3663],  # values for train+unsupervised combined
@@ -275,11 +275,11 @@ def create_validation_sampler(dataset_size):
 def get_transforms(eval=False, aug=None):
     trans = []
 
-    if aug["randcrop"] and not eval:
-        trans.append(transforms.RandomCrop(aug["randcrop"]))
+    # if aug["randcrop"] and not eval:
+    #     trans.append(transforms.RandomCrop(aug["randcrop"]))
 
-    if aug["randcrop"] and eval:
-        trans.append(transforms.CenterCrop(aug["randcrop"]))
+    # if aug["randcrop"] and eval:
+    #     trans.append(transforms.CenterCrop(aug["randcrop"]))
 
     if aug["flip"] and not eval:
         trans.append(transforms.RandomHorizontalFlip())

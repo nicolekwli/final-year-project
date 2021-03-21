@@ -124,15 +124,17 @@ class ResNet_Encoder(nn.Module):
             self.in_planes = self.filter[0]
         else:
             self.model.add_module(
-                    "Conv1",
+                    "Conv2",
                     MyConv(28,self.filter[0],3,1,1),
                 )
 
         self.in_planes = self.filter[0]
-        # self.model.add_module(
-        #         "Conv2",
-        #         MyConv(64,256,3,1,1),
-        #     )
+        if opt.model_splits == 1:
+            self.model.add_module(
+                "layer 1",
+                    MyConv(28,self.filter[1],3,1,1),
+            )
+            self.in_planes = self.filter[1]
 
 
         # if encoder_num == 0:
