@@ -168,8 +168,8 @@ class ResNet_Encoder(nn.Module):
                 out_channels=self.in_planes
             )
         elif self.opt.loss == 1:
-            # self.loss = Supervised_Loss.Supervised_Loss(opt, self.in_planes, True)
-            self.loss = Supervised_Loss.Supervised_Loss(opt, 64, True)
+            self.loss = Supervised_Loss.Supervised_Loss(opt, self.in_planes, True)
+            # self.loss = Supervised_Loss.Supervised_Loss(opt, 64, True)
         else:
             raise Exception("Invalid option")
 
