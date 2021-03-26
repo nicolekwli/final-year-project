@@ -131,7 +131,7 @@ class ResNet_Encoder(nn.Module):
         self.in_planes = self.filter[0]
         if opt.model_splits == 1:
             self.model.add_module(
-                "layer 1",
+                "Conv2",
                     MyConv(28,self.filter[1],3,1,1),
             )
             self.in_planes = self.filter[1]
@@ -197,6 +197,8 @@ class ResNet_Encoder(nn.Module):
 
 
     def forward(self, x, n_patches_x, n_patches_y, label, patchify_right_now=True):
+        # print("X before ")
+        # print(x.shape)
         if self.patchify and self.encoder_num == 0 and patchify_right_now:
             x = (
                 x.unfold(2, self.patch_size, self.patch_size // self.overlap)
@@ -209,11 +211,22 @@ class ResNet_Encoder(nn.Module):
                 x.shape[0] * x.shape[1] * x.shape[2], x.shape[3], x.shape[4], x.shape[5]
             )
 
+        # print("X after ")
+        # print(x.shape)
+
         z = self.model(x)
 
-        out = F.adaptive_avg_pool2d(z, 1)
+        # print("z")
+        # print(z.shape)
+
+        out = F.adaptive_avg_pool2d(z, 1) # Applies a 2D adaptive average pooling over an input signal composed of several input planes.
         out = out.reshape(-1, n_patches_x, n_patches_y, out.shape[1])
         out = out.permute(0, 3, 1, 2).contiguous()
+
+        # print("out")
+        # print(out.shape)
+
+        self.calc_loss = True
 
         accuracy = torch.zeros(1)
         if self.calc_loss and self.opt.loss == 0:
@@ -223,5 +236,6 @@ class ResNet_Encoder(nn.Module):
         else:
             loss = None
 
+        # loss = patch representations
         return out, z, loss, accuracy, n_patches_x, n_patches_y
 
