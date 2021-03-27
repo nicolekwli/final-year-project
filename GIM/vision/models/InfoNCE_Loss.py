@@ -39,7 +39,6 @@ class InfoNCE_Loss(nn.Module):
                     )
 
     def forward(self, z, c, skip_step=1):
-
         batch_size = z.shape[0]
 
         total_loss = 0
@@ -57,13 +56,15 @@ class InfoNCE_Loss(nn.Module):
             ztwk = (
                 self.W_k[k - 1]
                 .forward(z[:, :, (k + skip_step) :, :])  # Bx, C , H , W
-                .permute(2, 3, 0, 1)  # H, W, Bx, C
+                .permute(2, 3, 0, 1)  # H, W, Bx, C - rearrange
                 .contiguous()
             )  # y, x, b, c
 
             ztwk_shuf = ztwk.view(
                 ztwk.shape[0] * ztwk.shape[1] * ztwk.shape[2], ztwk.shape[3]
             )  # y * x * batch, c
+
+            # returns tensor with random integers of size ..
             rand_index = torch.randint(
                 ztwk_shuf.shape[0],  # y *  x * batch
                 (ztwk_shuf.shape[0] * self.negative_samples, 1),
@@ -92,26 +93,49 @@ class InfoNCE_Loss(nn.Module):
                 c[:, :, : -(k + skip_step), :].permute(2, 3, 0, 1).unsqueeze(-2)
             )  # y, x, b, 1, c
 
+            # pos
             log_fk_main = torch.matmul(context, ztwk.unsqueeze(-1)).squeeze(
                 -2
             )  # y, x, b, 1
 
+            # neg
             log_fk_shuf = torch.matmul(context, ztwk_shuf).squeeze(-2)  # y, x, b, n
 
             log_fk = torch.cat((log_fk_main, log_fk_shuf), 3)  # y, x, b, 1+n
             log_fk = log_fk.permute(2, 3, 0, 1)  # b, 1+n, y, x
 
-            log_fk = torch.softmax(log_fk, dim=1)
+            log_fk = torch.softmax(log_fk, dim=1) # obtains log probabilities
+            # We can maximize by minimizing the negative log likelihood
+            # there you have it, we want somehow to maximize by minimizing.
 
+            # Together the LogSoftmax() and NLLLoss() 
+            # acts as the cross-entropy loss .
+            
             true_f = torch.zeros(
                 (batch_size, log_fk.shape[-2], log_fk.shape[-1]),
                 dtype=torch.long,
                 device=cur_device,
             )  # b, y, x
 
+            # has 7 classes so prediction for each patch ..?
+            # print("tf log_fk")
+            # print(log_fk.shape)
+
+            # print("tf")
+            # print(true_f.shape)
+
+            # print("losee")
+            # print(self.contrast_loss(input=log_fk, target=true_f))
+
+            # mutual information shared between each patch
+
+            # the better the prediction, the lower the loss
             total_loss += self.contrast_loss(input=log_fk, target=true_f)
 
-        total_loss /= self.k_predictions
+            # print("total losee")
+            # print(total_loss)
+
+        total_loss /= self.k_predictions # maximise lower bound of mutual information
 
         return total_loss
 
@@ -123,6 +147,7 @@ class ExpNLLLoss(_WeightedLoss):
         super(ExpNLLLoss, self).__init__(weight, size_average, reduce, reduction)
         self.ignore_index = ignore_index
 
+    # likelihood of input in target
     def forward(self, input, target):
         x = torch.log(input + 1e-11)
         return F.nll_loss(x, target, weight=self.weight, ignore_index=self.ignore_index,
