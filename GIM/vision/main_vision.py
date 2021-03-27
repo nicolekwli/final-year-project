@@ -2,6 +2,8 @@ import torch
 import time
 import numpy as np
 
+from torch.utils.tensorboard import SummaryWriter
+
 #### own modules
 from GIM.utils import logger
 from GIM.vision.arg_parser import arg_parser
@@ -41,7 +43,7 @@ def train(opt, model):
     model.module.switch_calc_loss(True)
 
     print_idx = 200
-    log_idx = 20
+    log_idx = 50
 
     starttime = time.time()
     cur_train_module = opt.train_module
@@ -106,6 +108,13 @@ def train(opt, model):
                 loss_epoch[idx] += print_loss
                 loss_updates[idx] += 1
 
+            step_time = time.time() - starttime
+            if ((step + 1) % log_idx) == 0:
+                log_metrics(epoch, loss, starttime, step_time, step)
+
+                #Adds information to the summary writter/logger
+                #summary_writer.add_scalar("epoch", epoch, step)
+
 
         if opt.validate:
             validation_loss = validate(opt, model, test_loader) #test_loader corresponds to validation set here
@@ -114,7 +123,32 @@ def train(opt, model):
         logs.append_train_loss([x / loss_updates[idx] for idx, x in enumerate(loss_epoch)])
         if epoch % log_idx == 0:
             logs.create_log(model, epoch=epoch, optimizer=optimizer)
+        summary_writer.add_histogram('conv1.weight.grad', model.module.encoder[0].model.Conv1.conv1.weight.grad, epoch)
+        summary_writer.add_histogram('conv2.weight.grad', model.module.encoder[1].model.Conv2.conv1.weight.grad, epoch)
 
+
+        
+
+#Adds the loss, time taken loading data, and time taken completing steps to the logs
+def log_metrics(epoch, loss, data_load_time, step_time, step):
+    summary_writer.add_scalar("epoch", epoch, step)
+    summary_writer.add_scalar(
+            "time/data", data_load_time, step
+    )
+    summary_writer.add_scalar(
+            "time/data", step_time, step
+    )
+#Creates a unique sub directory to log this run in
+def get_summary_writer_log_dir(opt):
+    # tb_log_dir_prefix = f'CNN_bs={opt.batch_size}_lr={opt.learning_rate}_run_'
+    # i = 0
+    # while i < 1000:
+    #     tb_log_dir = opt.save_dir / (tb_log_dir_prefix + str(i))
+    #     if not tb_log_dir.exists():
+    #         return str(tb_log_dir)
+    #     i += 1
+    # return str(tb_log_dir)
+    return "tensor-logs"
 
 if __name__ == "__main__":
 
@@ -135,6 +169,14 @@ if __name__ == "__main__":
 
     logs = logger.Logger(opt)
 
+    # init tensorboard
+    log_dir = get_summary_writer_log_dir(opt)
+    print(f"Writing logs to {log_dir}")
+    summary_writer = SummaryWriter(
+            str(log_dir),
+            flush_secs=5
+    )
+
     train_loader, _, supervised_loader, _, test_loader, _ = get_dataloader.get_dataloader(
         opt
     )
@@ -150,3 +192,4 @@ if __name__ == "__main__":
         print("Training got interrupted, saving log-files now.")
 
     logs.create_log(model)
+    summary_writer.close()
