@@ -9,6 +9,7 @@ import torch.nn as nn
 from torch.autograd import Variable
 import torch.nn.functional as F
 from PIL import Image
+import torchvision
 
 ## own modules
 from GIM.vision.data import get_dataloader
@@ -180,14 +181,22 @@ def getData(test_loader):
     classes = np.zeros([10,1])
     #print(classes)
 
-    data = [[None for _ in range(1)] for _ in range(10)]
+    data = [[torch.empty(32,1,64,64) for _ in range(1)] for _ in range(10)]
     #print(data)
 
     for idx, (img, label) in enumerate(test_loader):
         for l_idx, l in enumerate(label):
             if (classes[l] == 0):
                 classes[l] = 1
-                data[l] = img[l_idx]
+
+                x = torch.empty(1,1,64,64)
+                a = img[l_idx]
+                a = a.unsqueeze(0)
+                for i in range(31):
+                    
+                    
+                    x = torch.cat([x, a], dim=0)
+                data[l] = x
 
     return data
 
@@ -200,7 +209,7 @@ if __name__ == "__main__":
         opt, reload_model=True, calc_loss=False
     )
 
-    _, _, train_loader, _, test_loader, _ = get_dataloader.get_dataloader(opt)
+    _, _, train_loader, train_dataset, test_loader, test_dataset = get_dataloader.get_dataloader(opt)
 
     model.eval()
 
@@ -249,19 +258,32 @@ if __name__ == "__main__":
 
 
     # RDM --------------------------------------------------------------------------
+
+    # idx = train_dataset.train_labels==1
+    # train_dataset.targets = train_dataset.targets[idx]
+    # print(train_dataset.targets)
+    # train_dataset.data = train_dataset.data[idx]
+
+    # print(train_dataset.data)
+
+    # print(train_dataset.data.shape)
+
     data = getData(test_loader)
 
-    for step, img in enumerate(data):
-        model_input = img
-        model_input = model_input.reshape(1, 1, 64, 64)
-        visTensor("original.png", model_input )
-        n_patches_x, n_patches_y = None, None
-        for idx, module in enumerate(model.module.encoder[: 2+1]):
-            print(idx)
-            print(module)
-            h, z, cur_loss, cur_accuracy, n_patches_x, n_patches_y = module(
-                model_input, n_patches_x, n_patches_y, label
-            )
-            model_input = z.detach()
+    for c in range(11):
+
+
+        for step, img in enumerate(data):
+            #model_input = img.reshape([1,1,64,64])
+            if (step == 1):
+
+
+                print(img.shape)
+                #isTensor("original.png", model_input )
+                
+                n_patches_x, n_patches_y = None, None
+
+                output = model(img, step)
+
 
 
