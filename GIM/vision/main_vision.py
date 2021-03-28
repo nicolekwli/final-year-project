@@ -112,10 +112,6 @@ def train(opt, model):
             if ((step + 1) % log_idx) == 0:
                 log_metrics(epoch, loss, starttime, step_time, step)
 
-                #Adds information to the summary writter/logger
-                #summary_writer.add_scalar("epoch", epoch, step)
-
-
         if opt.validate:
             validation_loss = validate(opt, model, test_loader) #test_loader corresponds to validation set here
             logs.append_val_loss(validation_loss)
@@ -126,8 +122,10 @@ def train(opt, model):
         summary_writer.add_histogram('conv1.weight.grad', model.module.encoder[0].model.Conv1.conv1.weight.grad, epoch)
         summary_writer.add_histogram('conv2.weight.grad', model.module.encoder[1].model.Conv2.conv1.weight.grad, epoch)
 
+        # for end to end
+        # summary_writer.add_histogram('conv1.weight.grad', model.module.encoder[0].model.Conv1.conv1.weight.grad, epoch)
+        # summary_writer.add_histogram('conv2.weight.grad', model.module.encoder[0].model.Conv2.conv1.weight.grad, epoch)
 
-        
 
 #Adds the loss, time taken loading data, and time taken completing steps to the logs
 def log_metrics(epoch, loss, data_load_time, step_time, step):
