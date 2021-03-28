@@ -169,6 +169,30 @@ def visEncoderEnd(model, test_loader):
             name = "res1_out_2.png"
             visTensor(name, filter2_data.detach().clone() )  
 
+def getData(test_loader):
+    examples = enumerate(test_loader)
+    batch_idx, (example_data, example_targets) = next(examples)
+
+
+    rdm_data = example_data[:50]
+    rdm_targets = example_targets[:50]
+
+    classes = np.zeros([10,1])
+    #print(classes)
+
+    data = [[None for _ in range(1)] for _ in range(10)]
+    #print(data)
+
+    for idx, (img, label) in enumerate(test_loader):
+        for l_idx, l in enumerate(label):
+            if (classes[l] == 0):
+                classes[l] = 1
+                data[l] = img[l_idx]
+
+    return data
+
+
+
 if __name__ == "__main__":
     opt = arg_parser.parse_args()
 
@@ -222,5 +246,22 @@ if __name__ == "__main__":
 
     # visualise the one or two encoder
     # visEncoder(model, test_loader)
+
+
+    # RDM --------------------------------------------------------------------------
+    data = getData(test_loader)
+
+    for step, img in enumerate(data):
+        model_input = img
+        model_input = model_input.reshape(1, 1, 64, 64)
+        visTensor("original.png", model_input )
+        n_patches_x, n_patches_y = None, None
+        for idx, module in enumerate(model.module.encoder[: 2+1]):
+            print(idx)
+            print(module)
+            h, z, cur_loss, cur_accuracy, n_patches_x, n_patches_y = module(
+                model_input, n_patches_x, n_patches_y, label
+            )
+            model_input = z.detach()
 
 
