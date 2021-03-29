@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import time
 import os
+import matplotlib
 import matplotlib.pyplot as plt
 from torchvision import utils as u
 import torch
@@ -339,7 +340,7 @@ if __name__ == "__main__":
 
             final = 1- final
 
-            one_class.append(final)
+            one_class.append(round(final.item(),1))
         finals.append(one_class)
 
 
@@ -375,12 +376,24 @@ if __name__ == "__main__":
     print(finals)
     print(len(finals))
     #visTensor("test.png", RDM)
-    
 
-    #     RDM.append(temp)
+    classes = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+    fig, ax = plt.subplots()
+    im = ax.imshow(finals)
+    ax.set_xticks(np.arange(len(classes)))
+    ax.set_yticks(np.arange(len(classes)))
+    ax.set_xticklabels(classes)
+    ax.set_yticklabels(classes)   
 
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+         rotation_mode="anchor")
 
-    # # [1, 64, 7, 7]
-    # final = torch.empty(10,64,7,7) 
-    # for i in range(10):
-    #     final = torch.cat([final, a], dim=0)
+    for i in range(len(classes)):
+        for j in range(len(classes)):
+            text = ax.text(j, i, finals[i][j],
+                        ha="center", va="center", color="w", fontsize="x-small")
+
+    ax.set_title("RDM")
+    fig.tight_layout()
+    plt.show()
+
