@@ -30,7 +30,7 @@ from GIM.utils import logger, utils
 #                     _, _, z, _ = model(model_input, target) # z is the loss values
 #                 z = z.detach() #double security that no gradients go to representation learning part of model
 
-def visTensor(name, tensor, ch=0, allkernels=False, nrow=8, padding=1): 
+def visTensor(name, tensor, ch=0, allkernels=False, nrow=10, padding=1): 
     n,c,w,h = tensor.shape
 
     if allkernels: tensor = tensor.view(n*c, -1, w, h)
@@ -270,20 +270,74 @@ if __name__ == "__main__":
 
     data = getData(test_loader)
 
-    for c in range(11):
+    # thing to store activation results of each class
+    # then used to compare and get correlation
+    outputs = []
 
+    for c in range(10):
 
         for step, img in enumerate(data):
             #model_input = img.reshape([1,1,64,64])
             if (step == 1):
 
-
-                print(img.shape)
                 #isTensor("original.png", model_input )
                 
                 n_patches_x, n_patches_y = None, None
 
-                output = model(img, step)
+                loss, _, output, accuracies = model(img, step)
+
+        output = output[1:2, :, :, :].detach()
+        # output = output.squeeze()# remove dimansion 1
+
+        outputs.append(output)
 
 
+    visTensor("test0.png", outputs[0])
+    visTensor("test4.png", outputs[4])
 
+
+    RDM = torch.empty(1,64,49,49)
+
+    for row in range(10): # needs to be 10
+
+        for col in range(10):
+            a = outputs[row]
+            b = outputs[col]
+
+            c = torch.empty(1,1,49,49) 
+
+            for i in range(64):
+
+                # print(a.shape)
+                aa = a[:,i,:,:]
+                aa = aa.view(49,1)
+
+                bb = b[:,i,:,:]
+                # b = b.reshape(-1,1)
+                bb = bb.view(1,49)
+
+
+                corr = torch.matmul(aa,bb)
+                corr = corr.reshape([1,1,49,49])
+
+                c = torch.cat([corr, c], dim=0)
+
+            c = c[1:, :, :, :]
+            c = c.reshape(1,64,49,49)
+
+            
+
+            RDM = torch.cat([RDM, c], dim=0)
+
+    RDM = RDM[1:, :, :, :]
+    print(RDM.shape)
+    visTensor("test.png", RDM)
+    
+
+    #     RDM.append(temp)
+
+
+    # # [1, 64, 7, 7]
+    # final = torch.empty(10,64,7,7) 
+    # for i in range(10):
+    #     final = torch.cat([final, a], dim=0)
