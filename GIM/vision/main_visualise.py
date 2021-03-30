@@ -19,19 +19,6 @@ from GIM.vision.arg_parser import arg_parser
 from GIM.vision.models import load_vision_model
 from GIM.utils import logger, utils
 
-
-# def visualise(train_loader):
-#     for idx, (img, target) in enumerate(train_loader):
-#         if (idx == 1):
-#             model_input = img.to(opt.device)
-
-#             if opt.model_type == 2:  ## fully supervised training
-#                 _, _, z = model(model_input)
-#             else:
-#                 with torch.no_grad():
-#                     _, _, z, _ = model(model_input, target) # z is the loss values
-#                 z = z.detach() #double security that no gradients go to representation learning part of model
-
 def visTensor(name, tensor, ch=0, allkernels=False, nrow=10, padding=1): 
     n,c,w,h = tensor.shape
 
@@ -42,11 +29,7 @@ def visTensor(name, tensor, ch=0, allkernels=False, nrow=10, padding=1):
     grid = u.make_grid(tensor, nrow=nrow, normalize=True, padding=padding)
     plt.figure( figsize=(nrow,rows) )
 
-    #Image.fromarray(grid).convert('RGB').resize((150, 300)).save(name)
-
     plt.imsave(name, grid.cpu().numpy().transpose((1, 2, 0)))
-
-
 
 
 
@@ -199,19 +182,6 @@ def getData(test_loader):
                 data[l] = x
     return data
 
-def visRDM(name, data, ch=0, allkernels=False, nrow=10, padding=1): 
-
-    if allkernels: tensor = tensor.view(n*c, -1, w, h)
-    elif c != 3: tensor = tensor[:,ch,:,:].unsqueeze(dim=1)
-
-    rows = np.min((tensor.shape[0] // nrow + 1, 64))    
-    grid = u.make_grid(tensor, nrow=nrow, normalize=True, padding=padding)
-    plt.figure( figsize=(nrow,rows) )
-
-    #Image.fromarray(grid).convert('RGB').resize((150, 300)).save(name)
-
-    plt.imsave(name, grid.cpu().numpy().transpose((1, 2, 0)))
-
 
 
 if __name__ == "__main__":
@@ -271,28 +241,11 @@ if __name__ == "__main__":
 
     # RDM --------------------------------------------------------------------------
 
-    # idx = train_dataset.train_labels==1
-    # train_dataset.targets = train_dataset.targets[idx]
-    # print(train_dataset.targets)
-    # train_dataset.data = train_dataset.data[idx]
-
-    # print(train_dataset.data)
-
-    # print(train_dataset.data.shape)
-
     data = getData(test_loader)
-    
 
-    # thing to store activation results of each class
-    # then used to compare and get correlation
     outputs = []
 
-    #for c in range(10):
-
     for step, img in enumerate(data):
-        #model_input = img.reshape([1,1,64,64])
-
-        #isTensor("original.png", model_input )
         
         n_patches_x, n_patches_y = None, None
 
@@ -302,9 +255,6 @@ if __name__ == "__main__":
         # output = output.squeeze()# remove dimansion 1
 
         outputs.append(output)
-
-    visTensor("test0.png", outputs[0])
-    visTensor("test4.png", outputs[4])
 
     RDM = torch.empty(1,64,49,49)
 
@@ -343,40 +293,6 @@ if __name__ == "__main__":
             one_class.append(round(final.item(),1))
         finals.append(one_class)
 
-
-            # c = torch.empty(1,49,49) 
-
-            # for i in range(64): # 64
-
-            #     # print(a.shape)
-            #     aa = a[:,i,:,:]
-            #     aa = aa.view(49,1)
-
-            #     bb = b[:,i,:,:]
-            #     bb = bb.view(1,49)
-
-
-            #     corr = torch.matmul(aa,bb)
-
-            #     corr = corr.reshape([1,49,49])
-                
-
-            #     c = torch.cat([corr, c], dim=0)
-            
-            # c = c[ 1:, :, :]
-            # c = c/64
-            # c = c.reshape([1,64,49,49])
-
-
-            #c = 1-c
-            #RDM = torch.cat([RDM, c], dim=0)
-
-    # RDM = RDM[1:, :, :, :]
-    # print(RDM.shape)
-    print(finals)
-    print(len(finals))
-    #visTensor("test.png", RDM)
-
     classes = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
     fig, ax = plt.subplots()
     im = ax.imshow(finals)
@@ -395,5 +311,6 @@ if __name__ == "__main__":
 
     ax.set_title("RDM")
     fig.tight_layout()
-    plt.show()
+    # plt.show()
+    plt.savefig("RDM_29.png")
 
