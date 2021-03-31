@@ -301,6 +301,20 @@ def getAllRDMs(opt, data, labels):
         plt.clf()
 
 
+def getLossPlot():
+    gim = np.load('gim-logs/vision_experiment/train_loss.npy')
+    cpc = np.load('cpc-logs/vision_experiment/train_loss.npy')
+    fs = np.load('fs-logs/vision_experiment/train_loss.npy')
+    gs = np.load('gs-logs/vision_experiment/train_loss.npy')
+    plt.plot(gim[0], label="GIM")
+    plt.plot(cpc[0], label="CPC")
+    plt.plot(gs[0], label="Greedy Supervised")
+    plt.plot(fs[0], label="Supervised")
+    
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend(loc="upper right")
+    plt.show()
 
 if __name__ == "__main__":
     opt = arg_parser.parse_args()
@@ -318,8 +332,12 @@ if __name__ == "__main__":
 
     # RDM --------------------------------------------------------------------------
 
-    data, labels = getData(test_loader)
-    getAllRDMs(opt, data, labels)
+    #data, labels = getData(test_loader)
+    #getAllRDMs(opt, data, labels)
     
+    # get Loss 
+    getLossPlot()
+
+
     
 
