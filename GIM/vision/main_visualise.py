@@ -19,7 +19,7 @@ from GIM.vision.arg_parser import arg_parser
 from GIM.vision.models import load_vision_model
 from GIM.utils import logger, utils
 
-def visTensor(name, tensor, ch=0, allkernels=False, nrow=10, padding=1): 
+def visTensor(name, tensor, ch=0, allkernels=False, nrow=4, padding=1): 
     n,c,w,h = tensor.shape
 
     if allkernels: tensor = tensor.view(n*c, -1, w, h)
@@ -69,13 +69,27 @@ def visEncoderGIM(model, test_loader):
     number = Variable(number, requires_grad=True)
 
     n_patches_x, n_patches_y = None, None
+    patch_size = 16
+    overlap = 2
 
     # conv1_out = model.conv1.forward(number.cuda())
     # output = model.module.encoder[0].model.Conv1.conv1.forward(number)
     for step, (img, label) in enumerate(train_loader):
         if (step == 1):
-            model_input = img
-            visTensor("original.png", img )
+            x = img
+            x = (
+                x.unfold(2, patch_size, patch_size // overlap)
+                .unfold(3, patch_size, patch_size // overlap)
+                .permute(0, 2, 3, 1, 4, 5)
+            )
+            n_patches_x = x.shape[1]
+            n_patches_y = x.shape[2]
+            x = x.reshape(
+                x.shape[0] * x.shape[1] * x.shape[2], x.shape[3], x.shape[4], x.shape[5]
+            )
+
+            model_input = x
+            visTensor("original.png", x )
 
             filter1_data = model.module.encoder[0].model.Conv1.forward(img)
             # filter1_data = F.relu(model.module.encoder[0].model.Conv1.conv1.forward(img))
@@ -84,12 +98,11 @@ def visEncoderGIM(model, test_loader):
             name = "res1_out_1.png" 
             visTensor(name, filter1_data.detach().clone() )
 
-            filter2_data = model.module.encoder[1].model.Conv2.forward(filter1_data)
+            _,_,filter2_data,_ = model(img, label)
+            # filter2_data = model.module.encoder[1].model.Conv2.forward(model_input)
             # filter2_data = F.relu(model.module.encoder[1].model.Conv2.conv1.forward(filter1_data))
-            print(filter1_data)
-            model_input = filter2_data.detach()
             name = "res1_out_2.png"
-            visTensor(name, filter2_data.detach().clone() )  
+            visTensor(name, filter2_data.detach().clone())  
 
 def visEncoderGreedy(model, test_loader):
     examples = enumerate(test_loader)
@@ -100,13 +113,26 @@ def visEncoderGreedy(model, test_loader):
     number = Variable(number, requires_grad=True)
 
     n_patches_x, n_patches_y = None, None
+    patch_size = 16
+    overlap = 2
 
     # conv1_out = model.conv1.forward(number.cuda())
     # output = model.module.encoder[0].model.Conv1.conv1.forward(number)
     for step, (img, label) in enumerate(train_loader):
         if (step == 1):
-            model_input = img
-            visTensor("original.png", img )
+            x = img
+            x = (
+                x.unfold(2, patch_size, patch_size // overlap)
+                .unfold(3, patch_size, patch_size // overlap)
+                .permute(0, 2, 3, 1, 4, 5)
+            )
+            n_patches_x = x.shape[1]
+            n_patches_y = x.shape[2]
+            x = x.reshape(
+                x.shape[0] * x.shape[1] * x.shape[2], x.shape[3], x.shape[4], x.shape[5]
+            )
+            model_input = x
+            visTensor("original.png", x )
 
             filter1_data = model.module.encoder[0].model.Conv1.forward(img)
             #filter1_data = model.module.encoder[0].model.Conv1.conv1.forward(img)
@@ -133,22 +159,34 @@ def visEncoderEnd(model, test_loader):
     number = Variable(number, requires_grad=True)
 
     n_patches_x, n_patches_y = None, None
+    patch_size = 16
+    overlap = 2
 
     for step, (img, label) in enumerate(train_loader):
         if (step == 1):
-            model_input = img
-            visTensor("original.png", img )
+            x = img
+            x = (
+                x.unfold(2, patch_size, patch_size // overlap)
+                .unfold(3, patch_size, patch_size // overlap)
+                .permute(0, 2, 3, 1, 4, 5)
+            )
+            n_patches_x = x.shape[1]
+            n_patches_y = x.shape[2]
+            x = x.reshape(
+                x.shape[0] * x.shape[1] * x.shape[2], x.shape[3], x.shape[4], x.shape[5]
+            )
+            model_input = x
+            visTensor("original.png", x )
 
-            # filter1_data = model.module.encoder[0].model.Conv1.forward(img)    
-            filter1_data = F.relu(model.module.encoder[0].model.Conv1.conv1.forward(img))
+            filter1_data = model.module.encoder[0].model.Conv1.forward(img)    
+            #filter1_data = F.relu(model.module.encoder[0].model.Conv1.conv1.forward(img))
             model_input = filter1_data.detach()
             name = "res1_out_1.png" 
             visTensor(name, filter1_data.detach().clone() )
 
             # gives black
-            print("b")
-            print(model.module.encoder[0].model.Conv2)
-            filter2_data = F.relu(model.module.encoder[0].model.Conv2.conv1.forward(filter1_data))
+
+            filter2_data = model.module.encoder[0].model.Conv2.forward(model_input) 
             # gives numbers
             #filter2_data = model.module.encoder[0].model.Conv2.conv1.forward(model_input)
             model_input = filter2_data.detach()
@@ -235,6 +273,8 @@ def getData(test_loader):
 
 def getAllRDMs(opt, data, labels):
     model_nums = [1,5,10,15,20,25,29]
+
+   
     #model_nums = [0]
 
     for num in model_nums:
@@ -247,12 +287,17 @@ def getAllRDMs(opt, data, labels):
         outputs = []
 
         # get output for each class
+        # for step, (img, label) in enumerate(data):
         for step, img in enumerate(data):
             n_patches_x, n_patches_y = None, None
-            loss, _, output, accuracies = model(img, labels[step])
-            output = output[1:2, :, :, :].detach()
+            #loss, _, output, accuracies = model(img, labels[step])
+            #output, _, _, _, _, _ = model.module.encoder[0].forward(img, n_patches_x, n_patches_y, labels[step])
+            output = model.module.encoder[0].model.Conv1.forward(img)
+            #output = output[1:2, :, :, :].detach()
+            output = output.detach()
             outputs.append(output)
 
+        print(len(outputs))
         RDM = torch.empty(1,64,49,49)
 
         finals = []
@@ -300,6 +345,19 @@ def getAllRDMs(opt, data, labels):
         plt.savefig("RDM_{}.png".format(opt.model_num))
         plt.clf()
 
+def getGradWRTWeights():
+    for num in range(30):
+        opt.model_num = num
+
+        model, _ = load_vision_model.load_model_and_optimizer(
+            opt, reload_model=True, calc_loss=False
+        )
+
+        
+        grads = torch.sum(model.module.encoder[0].model.Conv1.conv1.weight.grad)
+
+        print(grads)
+
 
 def getLossPlot():
     gim = np.load('gim-logs/vision_experiment/train_loss.npy')
@@ -327,16 +385,52 @@ if __name__ == "__main__":
 
     model.eval()
 
+    ## VISUALISE GRADIENTS WRT WEIGHTS OVER EPOCHS ----------------------------------------------------------
+    getGradWRTWeights()
+
+
     # getWeightsAndActivations()
+    # examples = enumerate(test_loader)
+    # batch_idx, (example_data, example_targets) = next(examples)
+
+    # print(batch_idx)
+    # print(example_data.shape)
+    # idx = (examples.targets==1)
+    # examples.targets = examples.targets[idx]
+    # examples.data = examples.data[idx]
+
+    #isEncoderGIM(model, test_loader)
+    #visEncoderEnd(model, test_loader)
 
 
     # RDM --------------------------------------------------------------------------
 
     #data, labels = getData(test_loader)
-    #getAllRDMs(opt, data, labels)
+
+    # data = []
+    # labels = []
+    # for i in range(10):
+    #     _, _, train_loader, train_dataset, test_loader, test_dataset = get_dataloader.get_dataloader(opt)
+
+    #     #c = torch.tensor(c, dtype=torch.int64)
+    #     idx = (train_dataset.targets== i)
+    #     train_dataset.targets = train_dataset.targets[idx]
+    #     train_dataset.data = train_dataset.data[idx]
+
+
+    #     t_loader = torch.utils.data.DataLoader(
+    #         train_dataset, batch_size=32
+    #     )
+
+    #     for step, (img, label) in enumerate(t_loader):
+    #         if (step == 1):
+    #             data.append(img)
+    #             labels.append(label)
+
+    # getAllRDMs(opt, data, labels)
     
     # get Loss 
-    getLossPlot()
+    # getLossPlot()
 
 
     
