@@ -1,6 +1,3 @@
-Local cost functions in neuroscience and deep learning
-
-#
-/notebooks contains code for development and testing purposes
+# Evaluation and Analysis of local cost functions in neuroscience and deep learning
 
 https://github.com/loeweX/Greedy_InfoMax
