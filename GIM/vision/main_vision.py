@@ -3,6 +3,8 @@ import time
 import numpy as np
 
 from torch.utils.tensorboard import SummaryWriter
+import matplotlib
+import matplotlib.pyplot as plt
 
 #### own modules
 from GIM.utils import logger
@@ -48,6 +50,8 @@ def train(opt, model):
     starttime = time.time()
     cur_train_module = opt.train_module
 
+    record = {}
+
 
     for epoch in range(opt.start_epoch, opt.num_epochs + opt.start_epoch):
 
@@ -55,6 +59,7 @@ def train(opt, model):
         loss_updates = [1 for i in range(opt.model_splits)]
 
         for step, (img, label) in enumerate(train_loader):
+            print(step)
 
             if step % print_idx == 0:
                 print(
@@ -117,14 +122,38 @@ def train(opt, model):
             logs.append_val_loss(validation_loss)
 
         logs.append_train_loss([x / loss_updates[idx] for idx, x in enumerate(loss_epoch)])
+
+        for name, param in model.named_parameters():
+            if name == 'module.model.0.0.model.Conv1.conv1.weight':
+                if 'conv1' not in record.keys():
+                    record['conv1'] = {}
+                    record['conv1']['kern1'] = []
+                    record['conv1']['kern1'].append(param.grad[:,0,:,:].cpu())
+                else:
+                    record['conv1']['kern1'].append(param.grad[:,0,:,:].cpu())
+
+            # store 3
+            if name == 'module.model.0.1.model.Conv2.conv1.weight':
+                if 'conv2' not in record.keys():
+                    record['conv2'] = {}
+                    record['conv2']['kern1'] = []
+                    record['conv2']['kern1'].append(param.grad[ : , 1, : , : ].cpu())
+                else:
+                    record['conv2']['kern1'].append(param.grad[ : , 1, : , : ].cpu())
+
+        # grads_weight = torch.sum(abs(model.module.encoder[0].model.Conv1.conv1.weight.grad))
+        # logs.append_grad_weight(grads_weight.item())
+
         if epoch % log_idx == 0:
             logs.create_log(model, epoch=epoch, optimizer=optimizer)
-        summary_writer.add_histogram('conv1.weight.grad', model.module.encoder[0].model.Conv1.conv1.weight.grad, epoch)
-        summary_writer.add_histogram('conv2.weight.grad', model.module.encoder[1].model.Conv2.conv1.weight.grad, epoch)
+
+        # summary_writer.add_histogram('conv1.weight.grad', model.module.encoder[0].model.Conv1.conv1.weight.grad, epoch)
+        # summary_writer.add_histogram('conv2.weight.grad', model.module.encoder[1].model.Conv2.conv1.weight.grad, epoch)
 
         # for end to end
         # summary_writer.add_histogram('conv1.weight.grad', model.module.encoder[0].model.Conv1.conv1.weight.grad, epoch)
         # summary_writer.add_histogram('conv2.weight.grad', model.module.encoder[0].model.Conv2.conv1.weight.grad, epoch)
+    return record
 
 
 #Adds the loss, time taken loading data, and time taken completing steps to the logs
@@ -147,6 +176,30 @@ def get_summary_writer_log_dir(opt):
     #     i += 1
     # return str(tb_log_dir)
     return "tensor-logs"
+
+def draw_grad_weight_heatmap(data):
+
+    data = np.array(data)
+    data = np.transpose(data)
+
+    kernels = np.arange(1, len(data)+1, 2)
+    epochs = np.arange(1, len(data[0])+1, len(data[0])//2)
+
+    fig, ax = plt.subplots()
+    im = ax.imshow(data, vmin=0, vmax=1)
+    ax.set_xticks(epochs)
+    ax.set_yticks(kernels)
+    ax.set_xticklabels(epochs)
+    ax.set_yticklabels(kernels)
+
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+        rotation_mode="anchor")
+    ax.invert_yaxis()
+    plt.xlabel('Epoch')
+    plt.ylabel('Input')
+    fig.tight_layout()
+    name = name + ".png"
+    plt.savefig(name)
 
 if __name__ == "__main__":
 
@@ -184,10 +237,18 @@ if __name__ == "__main__":
 
     try:
         # Train the model
-        train(opt, model)
+        records = train(opt, model)
 
     except KeyboardInterrupt:
         print("Training got interrupted, saving log-files now.")
+
+    # calc and create plot
+    records['conv1']['kern1'] = [i.reshape(i.shape[0], i.shape[1]*i.shape[2]) for i in records['conv1']['kern1']]
+    records['conv1']['kern1'] = [torch.abs(i) for i in records['conv1']['kern1']]
+    records['conv1']['kern1'] = [torch.sum(i, dim=1) for i in records['conv1']['kern1']]
+    records['conv1']['kern1'] = [i.numpy() for i in records['conv1']['kern1']]
+    draw_grad_weight_heatmap(records['conv1']['kern1'])
+
 
     logs.create_log(model)
     summary_writer.close()
