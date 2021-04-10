@@ -12,6 +12,8 @@ import torch.nn.functional as F
 from PIL import Image
 import torchvision
 import math as m
+import csv
+import pandas as pd
 
 ## own modules
 from GIM.vision.data import get_dataloader
@@ -375,18 +377,18 @@ def getLossPlot():
     plt.show()
 
 if __name__ == "__main__":
-    opt = arg_parser.parse_args()
+    #opt = arg_parser.parse_args()
 
-    model, _ = load_vision_model.load_model_and_optimizer(
-        opt, reload_model=True, calc_loss=False
-    )
+    #model, _ = load_vision_model.load_model_and_optimizer(
+    #    opt, reload_model=True, calc_loss=False
+    #)
 
-    _, _, train_loader, train_dataset, test_loader, test_dataset = get_dataloader.get_dataloader(opt)
+    #_, _, train_loader, train_dataset, test_loader, test_dataset = get_dataloader.get_dataloader(opt)
 
-    model.eval()
+    #model.eval()
 
     ## VISUALISE GRADIENTS WRT WEIGHTS OVER EPOCHS ----------------------------------------------------------
-    getGradWRTWeights()
+    #getGradWRTWeights()
 
 
     # getWeightsAndActivations()
@@ -429,8 +431,36 @@ if __name__ == "__main__":
 
     # getAllRDMs(opt, data, labels)
     
-    # get Loss 
+    # get Loss ------------------------------------------------------------------------
     # getLossPlot()
+
+    # average grad ----------------------------------------------------------------
+    # x = []
+    # y = []
+
+    #df = pd.read_csv('gim_avg_grad.csv')
+    #df = pd.read_csv('gim-avg-grad_2.csv')
+    
+    #df = pd.read_csv('gs_conv1_grad.csv')
+    #df = pd.read_csv('gs_conv2_grad.csv')
+
+    #df = pd.read_csv('cpc-conv1-avg.csv')
+    #df = pd.read_csv('cpc-conv2-avg.csv')
+
+    #df = pd.read_csv('fs-avg-conv1.csv')
+    #df = pd.read_csv('fs-avg-conv2.csv')
+    
+    
+    #data = np.genfromtxt("gim_avg_grad.csv", delimiter=",", names=["x", "y"])
+    # print(df['Step'])
+    # print(df['Value'])
+    # plt.plot(df['Step'], df['Value'])
+    # plt.ylim([-0.04,0.04])
+    # plt.xlabel('x')
+    # plt.ylabel('y')
+    # plt.title('FS Average Gradients')
+    # plt.savefig("grad2_avg.png")
+
 
 
     
