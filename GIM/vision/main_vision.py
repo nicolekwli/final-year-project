@@ -201,6 +201,34 @@ def draw_grad_weight_heatmap(data):
     name = name + ".png"
     plt.savefig(name)
 
+def draw_grad_weight_heatmap_multiple(d, name, ep):
+    fig, ax = plt.subplots(1, 5)
+    for idx, key in enumerate(records['conv2']):
+        data = d[key]
+        data = [i.view(i.shape[0], i.shape[1]*i.shape[2]) for i in data]
+        data = [torch.abs(i) for i in data]
+        data = [torch.sum(i, dim=1) for i in data]
+        data = [i.cpu().numpy() for i in data]
+        data = np.array(data)
+        data = np.transpose(data)
+        kernels = np.arange(1, len(data)+1, 5)
+        epochs = np.arange(1, ep+1, 5)
+
+        im = ax[idx].imshow(data, vmin=0, vmax=1)
+        ax[idx].set_xticks(epochs)
+        ax[idx].set_yticks(kernels)
+        ax[idx].set_xticklabels(epochs, fontsize=8)
+        ax[idx].set_yticklabels(kernels, fontsize=8)
+        plt.setp(ax[idx].get_xticklabels(), rotation=45, ha="right",
+            rotation_mode="anchor")
+        ax[idx].invert_yaxis()
+    ax[2].set_xlabel('Epoch')
+    ax[0].set_ylabel('Input')
+    fig.tight_layout()
+    name = name + ".png"
+    plt.savefig(name)
+
+
 if __name__ == "__main__":
 
     opt = arg_parser.parse_args()
@@ -248,6 +276,20 @@ if __name__ == "__main__":
     records['conv1']['kern1'] = [torch.sum(i, dim=1) for i in records['conv1']['kern1']]
     records['conv1']['kern1'] = [i.numpy() for i in records['conv1']['kern1']]
     draw_grad_weight_heatmap(records['conv1']['kern1'])
+
+    #draw_grad_weight_heatmap(records['conv2'], "conv2")
+    draw_grad_weight_heatmap_multiple(records['conv2'], "conv2", opt.num_epochs)
+    #for key in records['conv2']:
+    #    print(key)
+    #    records['conv2'][key] = [i.view(i.shape[0], i.shape[1]*i.shape[2]) for i in records['conv2'][key]]
+    #    records['conv2'][key] = [torch.abs(i) for i in records['conv2'][key]]
+    #    records['conv2'][key] = [torch.sum(i, dim=1) for i in records['conv2'][key]]
+    #    records['conv2'][key] = [i.cpu().numpy() for i in records['conv2'][key]]
+    #    name = "conv2-{}".format(key)
+    #    draw_grad_weight_heatmap(records['conv2'][key], name)
+    a_file = open("fs.json", "wb")
+    pickle.dump(records, a_file)
+    a_file.close()
 
 
     logs.create_log(model)
