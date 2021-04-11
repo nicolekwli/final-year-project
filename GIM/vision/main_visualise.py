@@ -14,6 +14,9 @@ import torchvision
 import math as m
 import csv
 import pandas as pd
+import json
+import io
+import sys
 
 ## own modules
 from GIM.vision.data import get_dataloader
@@ -241,7 +244,6 @@ def getData(test_loader):
     examples = enumerate(test_loader)
     batch_idx, (example_data, example_targets) = next(examples)
 
-
     rdm_data = example_data[:50]
     rdm_targets = example_targets[:50]
 
@@ -274,12 +276,11 @@ def getData(test_loader):
     return data, labels
 
 def getAllRDMs(opt, data, labels):
-    model_nums = [1,5,10,15,20,25,29]
+    # model_nums = [1,5,10,15,20,25,29]
+    model_nums = [1,15,29]
+    fig, ax = plt.subplots(1,3)
 
-   
-    #model_nums = [0]
-
-    for num in model_nums:
+    for idx,num in enumerate(model_nums):
         opt.model_num = num
 
         model, _ = load_vision_model.load_model_and_optimizer(
@@ -292,9 +293,12 @@ def getAllRDMs(opt, data, labels):
         # for step, (img, label) in enumerate(data):
         for step, img in enumerate(data):
             n_patches_x, n_patches_y = None, None
-            #loss, _, output, accuracies = model(img, labels[step])
+            loss, _, output, accuracies = model(img, labels[step])
+            #output = model.module.encoder[0].model.Conv1.forward(img)
+            
+            
             #output, _, _, _, _, _ = model.module.encoder[0].forward(img, n_patches_x, n_patches_y, labels[step])
-            output = model.module.encoder[0].model.Conv1.forward(img)
+            
             #output = output[1:2, :, :, :].detach()
             output = output.detach()
             outputs.append(output)
@@ -325,27 +329,27 @@ def getAllRDMs(opt, data, labels):
             finals.append(one_class)
 
         classes = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
-        fig, ax = plt.subplots()
+        
         # plt.pcolor(finals, cmap='RdBu', vmin=0, vmax=1)
-        im = ax.imshow(finals, vmin=0, vmax=1)
-        ax.set_xticks(np.arange(len(classes)))
-        ax.set_yticks(np.arange(len(classes)))
-        ax.set_xticklabels(classes)
-        ax.set_yticklabels(classes)   
+        im = ax[idx].imshow(finals, vmin=0, vmax=1)
+        ax[idx].set_xticks(np.arange(len(classes)))
+        ax[idx].set_yticks(np.arange(len(classes)))
+        ax[idx].set_xticklabels(classes)
+        ax[idx].set_yticklabels(classes)   
 
-        plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+        plt.setp(ax[idx].get_xticklabels(), rotation=45, ha="right",
             rotation_mode="anchor")
 
         for i in range(len(classes)):
             for j in range(len(classes)):
-                text = ax.text(j, i, finals[i][j],
-                            ha="center", va="center", color="w", fontsize="x-small")
+                text = ax[idx].text(j, i, finals[i][j],
+                            ha="center", va="center", color="w", fontsize="5")
 
-        ax.set_title("RDM")
-        fig.tight_layout()
+        ax[idx].set_title("RDM")
+    fig.tight_layout()
         
-        plt.savefig("RDM_{}.png".format(opt.model_num))
-        plt.clf()
+    plt.savefig("RDM.png",bbox_inches = 'tight',pad_inches = 0.1)
+    plt.clf()
 
 def getGradWRTWeights():
     for num in range(30):
@@ -357,8 +361,6 @@ def getGradWRTWeights():
 
         
         grads = torch.sum(model.module.encoder[0].model.Conv1.conv1.weight.grad)
-
-        print(grads)
 
 
 def getLossPlot():
@@ -377,13 +379,13 @@ def getLossPlot():
     plt.show()
 
 if __name__ == "__main__":
-    #opt = arg_parser.parse_args()
+    opt = arg_parser.parse_args()
 
-    #model, _ = load_vision_model.load_model_and_optimizer(
+    # model, _ = load_vision_model.load_model_and_optimizer(
     #    opt, reload_model=True, calc_loss=False
-    #)
+    # )
 
-    #_, _, train_loader, train_dataset, test_loader, test_dataset = get_dataloader.get_dataloader(opt)
+    # _, _, train_loader, train_dataset, test_loader, test_dataset = get_dataloader.get_dataloader(opt)
 
     #model.eval()
 
@@ -407,7 +409,6 @@ if __name__ == "__main__":
 
     # RDM --------------------------------------------------------------------------
 
-    #data, labels = getData(test_loader)
 
     # data = []
     # labels = []
@@ -438,28 +439,51 @@ if __name__ == "__main__":
     # x = []
     # y = []
 
-    #df = pd.read_csv('gim_avg_grad.csv')
-    #df = pd.read_csv('gim-avg-grad_2.csv')
+    # df = pd.read_csv('gim_avg_grad.csv')
+    # df = pd.read_csv('gim-avg-grad_2.csv')
     
-    #df = pd.read_csv('gs_conv1_grad.csv')
-    #df = pd.read_csv('gs_conv2_grad.csv')
+    # df = pd.read_csv('gs_conv1_grad.csv')
+    # df = pd.read_csv('gs_conv2_grad.csv')
 
-    #df = pd.read_csv('cpc-conv1-avg.csv')
-    #df = pd.read_csv('cpc-conv2-avg.csv')
+    # df = pd.read_csv('cpc-conv1-avg.csv')
+    # df = pd.read_csv('cpc-conv2-avg.csv')
 
-    #df = pd.read_csv('fs-avg-conv1.csv')
-    #df = pd.read_csv('fs-avg-conv2.csv')
+    # df = pd.read_csv('fs-avg-conv1.csv')
+    # df = pd.read_csv('fs-avg-conv2.csv')
     
     
-    #data = np.genfromtxt("gim_avg_grad.csv", delimiter=",", names=["x", "y"])
+    # data = np.genfromtxt("gim_avg_grad.csv", delimiter=",", names=["x", "y"])
     # print(df['Step'])
     # print(df['Value'])
     # plt.plot(df['Step'], df['Value'])
     # plt.ylim([-0.04,0.04])
     # plt.xlabel('x')
     # plt.ylabel('y')
-    # plt.title('FS Average Gradients')
-    # plt.savefig("grad2_avg.png")
+    # plt.title('CPC Average Gradients')
+    # plt.savefig("grad1_avg.png")
+
+
+    # compare difference in gradients between models - .json ---------------------------
+    csv.field_size_limit(sys.maxsize)
+
+    result = {}
+    gim_conv1_grads = np.genfromtxt("gim-csv/conv1.csv", delimiter=',')
+    gs_conv1_grads = np.genfromtxt("gs-csv/conv1.csv", delimiter=',')
+    cpc_conv1_grads = np.genfromtxt("cpc-csv/conv1.csv", delimiter=',')
+    fs_conv1_grads = np.genfromtxt("fs-csv/conv1.csv", delimiter=',')
+    print(gim_conv1_grads[1])
+    print(gs_conv1_grads[1])
+    print(cpc_conv1_grads[1])
+    print(fs_conv1_grads[1])
+
+
+
+
+
+
+
+
+
 
 
 
