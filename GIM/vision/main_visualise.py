@@ -17,6 +17,8 @@ import pandas as pd
 import json
 import io
 import sys
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
 
 ## own modules
 from GIM.vision.data import get_dataloader
@@ -378,6 +380,33 @@ def getLossPlot():
     plt.legend(loc="upper right")
     plt.show()
 
+def draw_grad_weight_heatmap(data, name, title, ax ):
+    data = np.array(data)
+    data = np.transpose(data)
+    kernels = np.arange(1, len(data)+1, 5)
+    epochs = np.arange(1, len(data[0])+1, 5)
+    
+    im = ax.imshow(data, vmin=0, vmax=4)
+    ax.set_xticks(epochs)
+    ax.set_yticks(kernels)
+    ax.set_xticklabels(epochs, fontsize=8)
+    ax.set_yticklabels(kernels, fontsize=8)
+
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+        rotation_mode="anchor")
+    ax.invert_yaxis()
+    # plt.xlabel('Epoch')
+    # plt.ylabel('Input')
+    
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.05)
+    cbar = ax.figure.colorbar(im, ax=ax,cax=cax)
+    
+    name = name + ".png"
+    return ax, im
+    # plt.savefig(name)
+    #plt.clf()
+
 if __name__ == "__main__":
     opt = arg_parser.parse_args()
 
@@ -471,10 +500,30 @@ if __name__ == "__main__":
     gs_conv1_grads = np.genfromtxt("gs-csv/conv1.csv", delimiter=',')
     cpc_conv1_grads = np.genfromtxt("cpc-csv/conv1.csv", delimiter=',')
     fs_conv1_grads = np.genfromtxt("fs-csv/conv1.csv", delimiter=',')
-    print(gim_conv1_grads[1])
-    print(gs_conv1_grads[1])
-    print(cpc_conv1_grads[1])
-    print(fs_conv1_grads[1])
+    # print(gim_conv1_grads[1])
+    # print(gs_conv1_grads[1])
+    # print(cpc_conv1_grads[1])
+    # print(fs_conv1_grads[1])
+    fig, ax = plt.subplots(1,3)
+
+    gim_gs = abs(gim_conv1_grads - gs_conv1_grads)
+    ax[0],im = draw_grad_weight_heatmap(gim_gs, "gim_gs","gim vs greedy supervised", ax[0])
+
+    gim_cpc = abs(gim_conv1_grads - cpc_conv1_grads)
+    ax[1], im = draw_grad_weight_heatmap(gim_cpc, "gim_cpc", "gim vs cpc", ax[1])
+
+    gim_fs = abs(gim_conv1_grads - fs_conv1_grads)
+    ax[2], im =draw_grad_weight_heatmap(gim_fs, "gim_fs", "gim vs end-to-end supervised", ax[2])
+
+    ax[1].set_xlabel('Epoch')
+    ax[0].set_ylabel('Input')
+    fig.tight_layout()
+    plt.show()
+    #plt.savefig("test_compare.png")
+
+    # gs_cpc = abs(gs_conv1_grads - cpc_conv1_grads)
+    # draw_grad_weight_heatmap(gs_cpc, "gs_cpc")
+
 
 
 
