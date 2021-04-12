@@ -4,6 +4,7 @@ import time
 import os
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib.colors import BoundaryNorm
 from torchvision import utils as u
 import torch
 import torch.nn as nn
@@ -347,7 +348,7 @@ def getAllRDMs(opt, data, labels):
                 text = ax[idx].text(j, i, finals[i][j],
                             ha="center", va="center", color="w", fontsize="5")
 
-        ax[idx].set_title("RDM")
+        x[idx].set_title("RDM")
     fig.tight_layout()
         
     plt.savefig("RDM.png",bbox_inches = 'tight',pad_inches = 0.1)
@@ -385,8 +386,20 @@ def draw_grad_weight_heatmap(data, name, title, ax ):
     data = np.transpose(data)
     kernels = np.arange(1, len(data)+1, 5)
     epochs = np.arange(1, len(data[0])+1, 5)
+
+    cmap = plt.get_cmap('PuOr')
+    # extract all colors from the .jet map
+    cmaplist = [cmap(i) for i in range(cmap.N)]
+    # create the new map
+    cmap = cmap.from_list('Custom cmap', cmaplist, cmap.N)
+
+    bounds = np.arange(np.min(data),np.max(data),.5)
+    idx=np.searchsorted(bounds,0)
+    bounds=np.insert(bounds,idx,0)
+    norm = BoundaryNorm(bounds, cmap.N)
     
-    im = ax.imshow(data, vmin=0, vmax=4)
+    # im = ax.imshow(data, vmin=0, vmax=4)
+    im = ax.imshow(data, interpolation='none',norm=norm,cmap=cmap)
     ax.set_xticks(epochs)
     ax.set_yticks(kernels)
     ax.set_xticklabels(epochs, fontsize=8)
@@ -395,6 +408,7 @@ def draw_grad_weight_heatmap(data, name, title, ax ):
     plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
         rotation_mode="anchor")
     ax.invert_yaxis()
+    ax.set_title(title, fontsize='8')
     # plt.xlabel('Epoch')
     # plt.ylabel('Input')
     
@@ -506,20 +520,20 @@ if __name__ == "__main__":
     # print(fs_conv1_grads[1])
     fig, ax = plt.subplots(1,3)
 
-    gim_gs = abs(gim_conv1_grads - gs_conv1_grads)
+    gim_gs = gim_conv1_grads - gs_conv1_grads
     ax[0],im = draw_grad_weight_heatmap(gim_gs, "gim_gs","gim vs greedy supervised", ax[0])
 
-    gim_cpc = abs(gim_conv1_grads - cpc_conv1_grads)
+    gim_cpc = gim_conv1_grads - cpc_conv1_grads
     ax[1], im = draw_grad_weight_heatmap(gim_cpc, "gim_cpc", "gim vs cpc", ax[1])
 
-    gim_fs = abs(gim_conv1_grads - fs_conv1_grads)
+    gim_fs = gim_conv1_grads - fs_conv1_grads
     ax[2], im =draw_grad_weight_heatmap(gim_fs, "gim_fs", "gim vs end-to-end supervised", ax[2])
 
     ax[1].set_xlabel('Epoch')
     ax[0].set_ylabel('Input')
     fig.tight_layout()
-    plt.show()
-    #plt.savefig("test_compare.png")
+    #plt.show()
+    plt.savefig("grad_compare.png")
 
     # gs_cpc = abs(gs_conv1_grads - cpc_conv1_grads)
     # draw_grad_weight_heatmap(gs_cpc, "gs_cpc")
