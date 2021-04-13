@@ -19,6 +19,7 @@ import json
 import io
 import sys
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib import colors
 
 
 ## own modules
@@ -384,22 +385,26 @@ def getLossPlot():
 def draw_grad_weight_heatmap(data, name, title, ax ):
     data = np.array(data)
     data = np.transpose(data)
-    kernels = np.arange(1, len(data)+1, 5)
-    epochs = np.arange(1, len(data[0])+1, 5)
+    kernels = np.arange(1, len(data)+1, 4)
+    epochs = np.arange(1, len(data[0])+1, 4)
 
-    cmap = plt.get_cmap('PuOr')
-    # extract all colors from the .jet map
-    cmaplist = [cmap(i) for i in range(cmap.N)]
-    # create the new map
-    cmap = cmap.from_list('Custom cmap', cmaplist, cmap.N)
+    #cmap = plt.get_cmap('PuOr')
+    # # extract all colors from the .jet map
+    # cmaplist = [cmap(i) for i in range(cmap.N)]
+    # # create the new map
+    # cmap = cmap.from_list('Custom cmap', cmaplist, cmap.N)
 
-    bounds = np.arange(np.min(data),np.max(data),.5)
-    idx=np.searchsorted(bounds,0)
-    bounds=np.insert(bounds,idx,0)
-    norm = BoundaryNorm(bounds, cmap.N)
+    # bounds = np.arange(np.min(data),np.max(data),.5)
+    # idx=np.searchsorted(bounds,0)
+    # bounds=np.insert(bounds,idx,0)
+    # norm = BoundaryNorm(bounds, cmap.N)
+
+    
+    norm = colors.TwoSlopeNorm(vmin=np.min(data), vcenter=0, vmax=np.max(data))
     
     # im = ax.imshow(data, vmin=0, vmax=4)
-    im = ax.imshow(data, interpolation='none',norm=norm,cmap=cmap)
+    # im = ax.imshow(data, interpolation='none',norm=norm,cmap=cmap)
+    im = ax.imshow(data, interpolation='none',norm=norm)
     ax.set_xticks(epochs)
     ax.set_yticks(kernels)
     ax.set_xticklabels(epochs, fontsize=8)
@@ -415,6 +420,7 @@ def draw_grad_weight_heatmap(data, name, title, ax ):
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="5%", pad=0.05)
     cbar = ax.figure.colorbar(im, ax=ax,cax=cax)
+    cbar.ax.tick_params(labelsize=8)
     
     name = name + ".png"
     return ax, im
@@ -518,21 +524,41 @@ if __name__ == "__main__":
     # print(gs_conv1_grads[1])
     # print(cpc_conv1_grads[1])
     # print(fs_conv1_grads[1])
-    fig, ax = plt.subplots(1,3)
+    fig, ax = plt.subplots(2,3)
+    plt.set_cmap('PuOr')
+    #fig, ax = plt.subplots(nrows=2, ncols=3, sharex=True, sharey=True, figsize=(5.5, 5.5))
 
     gim_gs = gim_conv1_grads - gs_conv1_grads
-    ax[0],im = draw_grad_weight_heatmap(gim_gs, "gim_gs","gim vs greedy supervised", ax[0])
+    ax[0,0],im = draw_grad_weight_heatmap(gim_gs, "gim_gs","gim vs greedy supervised", ax[0,0])
 
     gim_cpc = gim_conv1_grads - cpc_conv1_grads
-    ax[1], im = draw_grad_weight_heatmap(gim_cpc, "gim_cpc", "gim vs cpc", ax[1])
+    ax[0, 1], im = draw_grad_weight_heatmap(gim_cpc, "gim_cpc", "gim vs cpc", ax[0,1])
 
     gim_fs = gim_conv1_grads - fs_conv1_grads
-    ax[2], im =draw_grad_weight_heatmap(gim_fs, "gim_fs", "gim vs end-to-end supervised", ax[2])
+    ax[0, 2], im =draw_grad_weight_heatmap(gim_fs, "gim_fs", "gim vs supervised", ax[0,2])
 
-    ax[1].set_xlabel('Epoch')
-    ax[0].set_ylabel('Input')
-    fig.tight_layout()
+    cpc_gs = cpc_conv1_grads - gs_conv1_grads
+    ax[1,0], im =draw_grad_weight_heatmap(cpc_gs, "cpc_gs", "cpc vs greedy supervised", ax[1,0])
+
+    cpc_fs = cpc_conv1_grads - fs_conv1_grads
+    ax[1,1], im =draw_grad_weight_heatmap(cpc_fs, "cpc_fs", "cpc vs supervised", ax[1,1])
+
+    gs_fs = gs_conv1_grads - fs_conv1_grads
+    ax[1,2], im =draw_grad_weight_heatmap(gs_fs, "gs_fs", "greedy supervised vs supervised", ax[1,2])
+
+    # ax[1].set_xlabel('Epoch')
+    # ax[0].set_ylabel('Input')
+    # for idx, a in enumerate(ax.flat):
+    #     print(idx)
+    #     a.set(xlabel='Epoch', ylabel='Input', fontsize=8)
+    fig.text(0.5, 0.04, 'Epoch', ha='center')
+    fig.text(0.03, 0.5, 'Input', va='center', rotation='vertical')
+    plt.subplots_adjust(left=0.1, bottom=None, right=None, top=None, wspace=0.6, hspace=0)
+
+    #fig.tight_layout()
     #plt.show()
+    plt.suptitle("Difference in gradients", y=0.9)
+    #fig.suptitle('Difference in gradients', fontsize=12)
     plt.savefig("grad_compare.png")
 
     # gs_cpc = abs(gs_conv1_grads - cpc_conv1_grads)
