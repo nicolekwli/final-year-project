@@ -520,13 +520,9 @@ if __name__ == "__main__":
     gs_conv1_grads = np.genfromtxt("gs-csv/conv1.csv", delimiter=',')
     cpc_conv1_grads = np.genfromtxt("cpc-csv/conv1.csv", delimiter=',')
     fs_conv1_grads = np.genfromtxt("fs-csv/conv1.csv", delimiter=',')
-    # print(gim_conv1_grads[1])
-    # print(gs_conv1_grads[1])
-    # print(cpc_conv1_grads[1])
-    # print(fs_conv1_grads[1])
+
     fig, ax = plt.subplots(2,3)
     plt.set_cmap('PuOr')
-    #fig, ax = plt.subplots(nrows=2, ncols=3, sharex=True, sharey=True, figsize=(5.5, 5.5))
 
     gim_gs = gim_conv1_grads - gs_conv1_grads
     ax[0,0],im = draw_grad_weight_heatmap(gim_gs, "gim_gs","gim vs greedy supervised", ax[0,0])
@@ -546,23 +542,15 @@ if __name__ == "__main__":
     gs_fs = gs_conv1_grads - fs_conv1_grads
     ax[1,2], im =draw_grad_weight_heatmap(gs_fs, "gs_fs", "greedy supervised vs supervised", ax[1,2])
 
-    # ax[1].set_xlabel('Epoch')
-    # ax[0].set_ylabel('Input')
-    # for idx, a in enumerate(ax.flat):
-    #     print(idx)
-    #     a.set(xlabel='Epoch', ylabel='Input', fontsize=8)
     fig.text(0.5, 0.04, 'Epoch', ha='center')
     fig.text(0.03, 0.5, 'Input', va='center', rotation='vertical')
     plt.subplots_adjust(left=0.1, bottom=None, right=None, top=None, wspace=0.6, hspace=0)
 
-    #fig.tight_layout()
-    #plt.show()
     plt.suptitle("Difference in gradients", y=0.9)
-    #fig.suptitle('Difference in gradients', fontsize=12)
     plt.savefig("grad_compare.png")
 
-    # gs_cpc = abs(gs_conv1_grads - cpc_conv1_grads)
-    # draw_grad_weight_heatmap(gs_cpc, "gs_cpc")
+    # ----------------- visualise MNSIT
+
 
 
 
