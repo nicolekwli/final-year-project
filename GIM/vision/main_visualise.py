@@ -441,9 +441,12 @@ def draw_grad_weight_heatmap_multiple(d, name, ep):
     fig.subplots_adjust(bottom=0.1, top=0.9, left=0.1, right=0.9,
                     wspace=0.33, hspace=0.05)
     
+    max_d = np.max(d)
+    min_d = np.min(d)
+
     for idx, data in enumerate(d):
-        max_d = np.max(data)
-        min_d = np.min(data)
+        # max_d = np.max(data)
+        # min_d = np.min(data)
         data = (data-min_d)
         data = data /(max_d-min_d)
 
@@ -464,7 +467,7 @@ def draw_grad_weight_heatmap_multiple(d, name, ep):
             rotation_mode="anchor")
         ax[idx].invert_yaxis()
     ax[2].set_xlabel('Epoch')
-    ax[0].set_ylabel('Kernel')
+    ax[0].set_ylabel('Input')
 
     cb_ax = fig.add_axes([0.93, 0.32, 0.02, 0.36])
     cbar = fig.colorbar(im, cax=cb_ax)
@@ -566,43 +569,47 @@ if __name__ == "__main__":
 
     # display gradients - .csv - conv1 ---------------------------
     csv.field_size_limit(sys.maxsize)
-    titles = ['gim', 'greedy supervised', 'cpc', 'supervised']
-    grads = []
+    # titles = ['gim', 'greedy supervised', 'cpc', 'supervised']
+    # grads = []
 
-    # These are raw values not normalised
-    grads.append(np.genfromtxt("gim-csv/conv1.csv", delimiter=','))
-    grads.append(np.genfromtxt("gs-csv/conv1.csv", delimiter=','))
-    grads.append(np.genfromtxt("cpc-csv/conv1.csv", delimiter=','))
-    grads.append(np.genfromtxt("fs-csv/conv1.csv", delimiter=','))
+    # # These are raw values not normalised
+    # grads.append(np.genfromtxt("gim-csv/conv1.csv", delimiter=','))
+    # grads.append(np.genfromtxt("gs-csv/conv1.csv", delimiter=','))
+    # grads.append(np.genfromtxt("cpc-csv/conv1.csv", delimiter=','))
+    # grads.append(np.genfromtxt("fs-csv/conv1.csv", delimiter=','))
 
-    max_d = np.max(grads)
-    min_d = np.min(grads)
+    # # max_d = np.max(grads)
+    # # min_d = np.min(grads)
 
-    # fig, ax = plt.subplots(1,4)
-    for i in range(4):
+    # # fig, ax = plt.subplots(1,4)
+    # for idx, data in enumerate(grads):
+    #     max_d = np.max(data)
+    #     min_d = np.min(data)
     
-        data = (fs_conv1_grads-min_d)
-        data = data /(max_d-min_d)
+    #     data = (data-min_d)
+    #     data = data /(max_d-min_d)
 
-    data = np.transpose(data)
+    #     data = np.transpose(data)
 
-    kernels = np.arange(1, len(data)+1, 4)
-    epochs = np.arange(1, len(data[0])+1, 4)
-    
-    # im = plt.imshow(gim_conv1_grads, cmap=plt.cm.RdBu)
-    im = plt.imshow(data)
+    #     kernels = np.arange(1, len(data)+1, 4)
+    #     epochs = np.arange(1, len(data[0])+1, 4)
+        
+    #     # im = plt.imshow(gim_conv1_grads, cmap=plt.cm.RdBu)
+    #     im = plt.imshow(data, vmin=0, vmax=1)
 
-    plt.colorbar(im)
-    plt.xticks(epochs)
-    plt.yticks(kernels)
-    plt.gca().invert_yaxis()
-    plt.xlabel('Epoch')
-    plt.ylabel('Input')
-    plt.subplots_adjust(left=0.1, bottom=None, right=None, top=None, wspace=0.6, hspace=0)
+    #     plt.colorbar(im)
+    #     plt.xticks(epochs)
+    #     plt.yticks(kernels)
+    #     plt.gca().invert_yaxis()
+    #     plt.xlabel('Epoch')
+    #     plt.ylabel('Input')
+    #     plt.subplots_adjust(left=0.1, bottom=None, right=None, top=None, wspace=0.6, hspace=0)
 
-    plt.savefig("grads.png")
+    #     name = "conv1-" + titles[idx] + ".png"
+    #     plt.savefig(name)
+    #     plt.clf()
 
-    # display gradients - .csv - conv2 ---------------------------
+    # display gradients norm across kernels - .csv - conv2 ---------------------------
     # models = ['gim-csv/', 'gs-csv/', 'cpc-csv/', 'fs-csv/']
     # titles = ['gim', 'greedy supervised', 'cpc', 'supervised']
     
@@ -617,6 +624,30 @@ if __name__ == "__main__":
     #         grads.append(data)
     #     fname = "conv2-" + titles[idx]
     #     draw_grad_weight_heatmap_multiple(grads, fname, 30)
+    
+    # display gradients norm across models - .csv - conv2 ---------------------------
+    models = ['gim-csv/', 'gs-csv/', 'cpc-csv/', 'fs-csv/']
+    titles = ['gim', 'greedy supervised', 'cpc', 'supervised']
+    
+    grads = []
+    for idx, model in enumerate(models):
+        m_grads = []
+        for i in range(5):
+            name = model + "conv2_" + str(i) + ".csv" 
+            print(name)
+            data = np.genfromtxt(name, delimiter=',')
+            print(data.shape)
+            print(data[0])
+            m_grads.append(data)
+        grads.append(m_grads)
+    
+    max_d = np.max(grads)
+    min_d = np.min(grads)
+    for idx, g in enumerate(grads):
+        data = (g-min_d)
+        data = data /(max_d-min_d)
+        fname = "conv2-" + titles[idx]
+        draw_grad_weight_heatmap_multiple(data, fname, 30)
 
     # compare difference in gradients between models - .csv - conv1 ---------------------------
     # csv.field_size_limit(sys.maxsize)
