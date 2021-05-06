@@ -20,6 +20,8 @@ import io
 import sys
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib import colors
+from keras.datasets import mnist
+from sklearn import datasets
 
 
 ## own modules
@@ -282,6 +284,7 @@ def getData(test_loader):
 def getAllRDMs(opt, data, labels):
     # model_nums = [1,5,10,15,20,25,29]
     model_nums = [1,15,29]
+    nums = [1,15,30]
     fig, ax = plt.subplots(1,3)
 
     for idx,num in enumerate(model_nums):
@@ -349,8 +352,13 @@ def getAllRDMs(opt, data, labels):
                 text = ax[idx].text(j, i, finals[i][j],
                             ha="center", va="center", color="w", fontsize="5")
 
-        x[idx].set_title("RDM")
-    fig.tight_layout()
+        ax[idx].set_title(str(nums[idx]))
+
+    ax[1].set_xlabel('Class')
+    ax[0].set_ylabel('Class')
+    cb_ax = fig.add_axes([0.93, 0.34, 0.02, 0.3])
+    cbar = fig.colorbar(im, cax=cb_ax)
+    # fig.tight_layout()
         
     plt.savefig("RDM.png",bbox_inches = 'tight',pad_inches = 0.1)
     plt.clf()
@@ -372,15 +380,16 @@ def getLossPlot():
     cpc = np.load('cpc-logs/vision_experiment/train_loss.npy')
     fs = np.load('fs-logs/vision_experiment/train_loss.npy')
     gs = np.load('gs-logs/vision_experiment/train_loss.npy')
-    plt.plot(gim[0], label="GIM")
+    plt.plot(gim[1], label="GIM")
     plt.plot(cpc[0], label="CPC")
-    plt.plot(gs[0], label="Greedy Supervised")
+    plt.plot(gs[1], label="Greedy Supervised")
     plt.plot(fs[0], label="Supervised")
     
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.legend(loc="upper right")
-    plt.show()
+    # plt.show()
+    plt.savefig("loss.png")
 
 def draw_grad_weight_heatmap(data, name, title, ax ):
     data = np.array(data)
@@ -427,14 +436,52 @@ def draw_grad_weight_heatmap(data, name, title, ax ):
     # plt.savefig(name)
     #plt.clf()
 
+def draw_grad_weight_heatmap_multiple(d, name, ep):
+    fig, ax = plt.subplots(1, 5)
+    fig.subplots_adjust(bottom=0.1, top=0.9, left=0.1, right=0.9,
+                    wspace=0.33, hspace=0.05)
+    
+    for idx, data in enumerate(d):
+        max_d = np.max(data)
+        min_d = np.min(data)
+        data = (data-min_d)
+        data = data /(max_d-min_d)
+
+        data = np.array(data)
+        data = np.transpose(data)
+        kernels = np.arange(1, len(data)+1, 5)
+        epochs = np.arange(1, ep+1, 5)
+
+        im = ax[idx].imshow(data, vmin=0, vmax=1)
+        ax[idx].set_xticks(epochs)
+        ax[idx].set_yticks(kernels)
+        ax[idx].set_xticklabels(epochs, fontsize=8)
+        ax[idx].set_yticklabels(kernels, fontsize=8)
+        
+        
+        
+        plt.setp(ax[idx].get_xticklabels(), rotation=45, ha="right",
+            rotation_mode="anchor")
+        ax[idx].invert_yaxis()
+    ax[2].set_xlabel('Epoch')
+    ax[0].set_ylabel('Kernel')
+
+    cb_ax = fig.add_axes([0.93, 0.32, 0.02, 0.36])
+    cbar = fig.colorbar(im, cax=cb_ax)
+
+    #fig.tight_layout()
+    name = name + ".png"
+    plt.savefig(name)
+    plt.clf()
+
 if __name__ == "__main__":
     opt = arg_parser.parse_args()
 
-    # model, _ = load_vision_model.load_model_and_optimizer(
-    #    opt, reload_model=True, calc_loss=False
-    # )
+    model, _ = load_vision_model.load_model_and_optimizer(
+       opt, reload_model=True, calc_loss=False
+    )
 
-    # _, _, train_loader, train_dataset, test_loader, test_dataset = get_dataloader.get_dataloader(opt)
+    _, _, train_loader, train_dataset, test_loader, test_dataset = get_dataloader.get_dataloader(opt)
 
     #model.eval()
 
@@ -452,15 +499,14 @@ if __name__ == "__main__":
     # examples.targets = examples.targets[idx]
     # examples.data = examples.data[idx]
 
-    #isEncoderGIM(model, test_loader)
-    #visEncoderEnd(model, test_loader)
+    # isEncoderGIM(model, test_loader)
+    # visEncoderEnd(model, test_loader)
 
 
     # RDM --------------------------------------------------------------------------
-
-
     # data = []
     # labels = []
+    # # Get 10 classes
     # for i in range(10):
     #     _, _, train_loader, train_dataset, test_loader, test_dataset = get_dataloader.get_dataloader(opt)
 
@@ -487,69 +533,190 @@ if __name__ == "__main__":
     # average grad ----------------------------------------------------------------
     # x = []
     # y = []
-
-    # df = pd.read_csv('gim_avg_grad.csv')
-    # df = pd.read_csv('gim-avg-grad_2.csv')
     
-    # df = pd.read_csv('gs_conv1_grad.csv')
-    # df = pd.read_csv('gs_conv2_grad.csv')
+    # df = []
+    # titles = ['gim', 'gs', 'cpc', 'fs']
 
-    # df = pd.read_csv('cpc-conv1-avg.csv')
-    # df = pd.read_csv('cpc-conv2-avg.csv')
+    # df.append(pd.read_csv('gim_avg_grad.csv'))
+    # df.append(pd.read_csv('gs_conv2_grad.csv'))
+    # df.append(pd.read_csv('cpc-conv1-avg.csv'))
+    # df.append(pd.read_csv('fs-avg-conv1.csv'))
 
-    # df = pd.read_csv('fs-avg-conv1.csv')
-    # df = pd.read_csv('fs-avg-conv2.csv')
+    # # df.append(pd.read_csv('gim-avg-grad_2.csv'))
+    # # df.append(pd.read_csv('gs_conv1_grad.csv'))
+    # # df.append(pd.read_csv('cpc-conv2-avg.csv'))
+    # # df.append(pd.read_csv('fs-avg-conv2.csv'))
     
+
+    # for i in range(4):
+
+    #     print(df[i]['Step'])
+    #     print(df[i]['Value'])
+    #     plt.plot(df[i]['Step'], df[i]['Value'])
+    #     plt.ylim([-0.04,0.04])
+    #     plt.xlabel('epoch')
+    #     # plt.text(0.5, 0.04, 'Epoch', ha='center')
+    #     # plt.subplots_adjust(left=0.1, bottom=None, right=None, top=None, wspace=0.6, hspace=0)
+    #     name = "conv1_avg_" + titles[i] + ".png"
+    #     plt.savefig(name)
+    #     plt.clf()
+    # plt.title('GS Average Gradients')
     
-    # data = np.genfromtxt("gim_avg_grad.csv", delimiter=",", names=["x", "y"])
-    # print(df['Step'])
-    # print(df['Value'])
-    # plt.plot(df['Step'], df['Value'])
-    # plt.ylim([-0.04,0.04])
-    # plt.xlabel('x')
-    # plt.ylabel('y')
-    # plt.title('CPC Average Gradients')
-    # plt.savefig("grad1_avg.png")
 
 
-    # compare difference in gradients between models - .json ---------------------------
+    # display gradients - .csv - conv1 ---------------------------
     csv.field_size_limit(sys.maxsize)
+    titles = ['gim', 'greedy supervised', 'cpc', 'supervised']
+    grads = []
 
-    result = {}
-    gim_conv1_grads = np.genfromtxt("gim-csv/conv1.csv", delimiter=',')
-    gs_conv1_grads = np.genfromtxt("gs-csv/conv1.csv", delimiter=',')
-    cpc_conv1_grads = np.genfromtxt("cpc-csv/conv1.csv", delimiter=',')
-    fs_conv1_grads = np.genfromtxt("fs-csv/conv1.csv", delimiter=',')
+    # These are raw values not normalised
+    grads.append(np.genfromtxt("gim-csv/conv1.csv", delimiter=','))
+    grads.append(np.genfromtxt("gs-csv/conv1.csv", delimiter=','))
+    grads.append(np.genfromtxt("cpc-csv/conv1.csv", delimiter=','))
+    grads.append(np.genfromtxt("fs-csv/conv1.csv", delimiter=','))
 
-    fig, ax = plt.subplots(2,3)
-    plt.set_cmap('PuOr')
+    max_d = np.max(grads)
+    min_d = np.min(grads)
 
-    gim_gs = gim_conv1_grads - gs_conv1_grads
-    ax[0,0],im = draw_grad_weight_heatmap(gim_gs, "gim_gs","gim vs greedy supervised", ax[0,0])
+    # fig, ax = plt.subplots(1,4)
+    for i in range(4):
+    
+        data = (fs_conv1_grads-min_d)
+        data = data /(max_d-min_d)
 
-    gim_cpc = gim_conv1_grads - cpc_conv1_grads
-    ax[0, 1], im = draw_grad_weight_heatmap(gim_cpc, "gim_cpc", "gim vs cpc", ax[0,1])
+    data = np.transpose(data)
 
-    gim_fs = gim_conv1_grads - fs_conv1_grads
-    ax[0, 2], im =draw_grad_weight_heatmap(gim_fs, "gim_fs", "gim vs supervised", ax[0,2])
+    kernels = np.arange(1, len(data)+1, 4)
+    epochs = np.arange(1, len(data[0])+1, 4)
+    
+    # im = plt.imshow(gim_conv1_grads, cmap=plt.cm.RdBu)
+    im = plt.imshow(data)
 
-    cpc_gs = cpc_conv1_grads - gs_conv1_grads
-    ax[1,0], im =draw_grad_weight_heatmap(cpc_gs, "cpc_gs", "cpc vs greedy supervised", ax[1,0])
-
-    cpc_fs = cpc_conv1_grads - fs_conv1_grads
-    ax[1,1], im =draw_grad_weight_heatmap(cpc_fs, "cpc_fs", "cpc vs supervised", ax[1,1])
-
-    gs_fs = gs_conv1_grads - fs_conv1_grads
-    ax[1,2], im =draw_grad_weight_heatmap(gs_fs, "gs_fs", "greedy supervised vs supervised", ax[1,2])
-
-    fig.text(0.5, 0.04, 'Epoch', ha='center')
-    fig.text(0.03, 0.5, 'Input', va='center', rotation='vertical')
+    plt.colorbar(im)
+    plt.xticks(epochs)
+    plt.yticks(kernels)
+    plt.gca().invert_yaxis()
+    plt.xlabel('Epoch')
+    plt.ylabel('Input')
     plt.subplots_adjust(left=0.1, bottom=None, right=None, top=None, wspace=0.6, hspace=0)
 
-    plt.suptitle("Difference in gradients", y=0.9)
-    plt.savefig("grad_compare.png")
+    plt.savefig("grads.png")
+
+    # display gradients - .csv - conv2 ---------------------------
+    # models = ['gim-csv/', 'gs-csv/', 'cpc-csv/', 'fs-csv/']
+    # titles = ['gim', 'greedy supervised', 'cpc', 'supervised']
+    
+    # for idx, model in enumerate(models):
+    #     grads = []
+    #     for i in range(5):
+    #         name = model + "conv2_" + str(i) + ".csv" 
+    #         print(name)
+    #         data = np.genfromtxt(name, delimiter=',')
+    #         print(data.shape)
+    #         print(data[0])
+    #         grads.append(data)
+    #     fname = "conv2-" + titles[idx]
+    #     draw_grad_weight_heatmap_multiple(grads, fname, 30)
+
+    # compare difference in gradients between models - .csv - conv1 ---------------------------
+    # csv.field_size_limit(sys.maxsize)
+
+    # result = {}
+    # gim_conv1_grads = np.genfromtxt("gim-csv/conv1.csv", delimiter=',')
+    # gs_conv1_grads = np.genfromtxt("gs-csv/conv1.csv", delimiter=',')
+    # cpc_conv1_grads = np.genfromtxt("cpc-csv/conv1.csv", delimiter=',')
+    # fs_conv1_grads = np.genfromtxt("fs-csv/conv1.csv", delimiter=',')
+
+    # fig, ax = plt.subplots(2,3)
+    # plt.set_cmap('PuOr')
+
+    # gim_gs = gim_conv1_grads - gs_conv1_grads
+    # ax[0,0],im = draw_grad_weight_heatmap(gim_gs, "gim_gs","gim vs greedy supervised", ax[0,0])
+
+    # gim_cpc = gim_conv1_grads - cpc_conv1_grads
+    # ax[0, 1], im = draw_grad_weight_heatmap(gim_cpc, "gim_cpc", "gim vs cpc", ax[0,1])
+
+    # gim_fs = gim_conv1_grads - fs_conv1_grads
+    # ax[0, 2], im =draw_grad_weight_heatmap(gim_fs, "gim_fs", "gim vs supervised", ax[0,2])
+
+    # cpc_gs = cpc_conv1_grads - gs_conv1_grads
+    # ax[1,0], im =draw_grad_weight_heatmap(cpc_gs, "cpc_gs", "cpc vs greedy supervised", ax[1,0])
+
+    # cpc_fs = cpc_conv1_grads - fs_conv1_grads
+    # ax[1,1], im =draw_grad_weight_heatmap(cpc_fs, "cpc_fs", "cpc vs supervised", ax[1,1])
+
+    # gs_fs = gs_conv1_grads - fs_conv1_grads
+    # ax[1,2], im =draw_grad_weight_heatmap(gs_fs, "gs_fs", "greedy supervised vs supervised", ax[1,2])
+
+    # fig.text(0.5, 0.04, 'Epoch', ha='center')
+    # fig.text(0.03, 0.5, 'Input', va='center', rotation='vertical')
+    # plt.subplots_adjust(left=0.1, bottom=None, right=None, top=None, wspace=0.6, hspace=0)
+
+    # plt.savefig("grad_compare.png")
+
+    # compare difference in gradients between models - .csv - conv2 ---------------------------
+    # models = ['gim-csv/', 'gs-csv/', 'cpc-csv/', 'fs-csv/']
+    # titles = ['gim', 'greedy supervised', 'cpc', 'supervised']
+    # fig, ax = plt.subplots(2,3)
+    # plt.set_cmap('PuOr')
+
+    # grads = []
+    # for model in models:
+    #     name = model + "conv2.csv" 
+
+    #     data = np.genfromtxt(name, delimiter=',')
+    #     print(type(data))
+    #     grads.append(data)
+
+    # gim_gs = grads[0] - grads[1]
+    # ax[0,0],im = draw_grad_weight_heatmap(gim_gs, "gim_gs","gim vs greedy supervised", ax[0,0])
+
+    # gim_cpc = grads[0] - grads[2]
+    # ax[0, 1], im = draw_grad_weight_heatmap(gim_cpc, "gim_cpc", "gim vs cpc", ax[0,1])
+
+    # gim_fs = grads[0] - grads[3]
+    # ax[0, 2], im =draw_grad_weight_heatmap(gim_fs, "gim_fs", "gim vs supervised", ax[0,2])
+
+    # cpc_gs = grads[2] - grads[1]
+    # ax[1,0], im =draw_grad_weight_heatmap(cpc_gs, "cpc_gs", "cpc vs greedy supervised", ax[1,0])
+
+    # cpc_fs = grads[2] - grads[3]
+    # ax[1,1], im =draw_grad_weight_heatmap(cpc_fs, "cpc_fs", "cpc vs supervised", ax[1,1])
+
+    # gs_fs = grads[1] - grads[3]
+    # ax[1,2], im =draw_grad_weight_heatmap(gs_fs, "gs_fs", "greedy supervised vs supervised", ax[1,2])
+
+    # fig.text(0.5, 0.04, 'Epoch', ha='center')
+    # fig.text(0.03, 0.5, 'Input', va='center', rotation='vertical')
+    # plt.subplots_adjust(left=0.1, bottom=0.15, right=None, top=None, wspace=0.5, hspace=0.4)
+
+    # # plt.suptitle("Difference in gradients", y=0.95)
+    # plt.savefig("grad2_compare.png")
+    
 
     # ----------------- visualise MNSIT
+    # for idx, (img, label) in enumerate(test_loader):
+    #     if (idx == 1):
+    #         visTensor("vis_MNIST.png", img,nrow=8)
+
+
+    # ----------------- Run classifier on each representation from each layer
+
+    # model_nums = [1,15,29]
+    # nums = [1,15,30]
+    # fig, ax = plt.subplots(1,3)
+
+    # for idx,num in enumerate(model_nums):
+    #     opt.model_num = num
+
+    #     model, _ = load_vision_model.load_model_and_optimizer(
+    #         opt, reload_model=True, calc_loss=False
+    #     )
+
+    #     #loss, _, output, accuracies = model(img, labels[step])
+    #     #output = model.module.encoder[0].model.Conv1.forward(img)
+
+
 
 
 
