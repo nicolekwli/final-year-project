@@ -61,8 +61,6 @@ def visEncoder(model, test_loader):
             model_input = img
             visTensor("original.png", img )
             for idx, module in enumerate(model.module.encoder[: 2+1]):
-                print(idx)
-                print(module)
                 h, z, cur_loss, cur_accuracy, n_patches_x, n_patches_y = module(
                     model_input, n_patches_x, n_patches_y, label
                 )
@@ -148,8 +146,6 @@ def visEncoderGreedy(model, test_loader):
             filter1_data = model.module.encoder[0].model.Conv1.forward(img)
             #filter1_data = model.module.encoder[0].model.Conv1.conv1.forward(img)
 
-
-            
             model_input = filter1_data.detach()
             name = "res1_out_1.png" 
             visTensor(name, filter1_data.detach().clone() )
@@ -224,7 +220,6 @@ def getWeightsAndActivations():
     # visTensor("filter1_visual_30_gs.png", filter1_data, ch=0, allkernels=False)
     # visTensor("filter2_visual_30_gs.png", filter2_data, ch=0, allkernels=False)
 
-
     # visEncoderGreedy(model, test_loader)
 
     # code to visualise cpc filters -------------------------------
@@ -281,8 +276,28 @@ def getData(test_loader):
         labels[i] = l.long()
     return data, labels
 
+def getDataAndLabelsRDMs():
+    data = []
+    labels = []
+    # Get 10 classes
+    for i in range(10):
+        _, _, train_loader, train_dataset, test_loader, test_dataset = get_dataloader.get_dataloader(opt)
+
+        idx = (train_dataset.targets== i)
+        train_dataset.targets = train_dataset.targets[idx]
+        train_dataset.data = train_dataset.data[idx]
+
+        t_loader = torch.utils.data.DataLoader(
+            train_dataset, batch_size=32
+        )
+
+        for step, (img, label) in enumerate(t_loader):
+            if (step == 1):
+                data.append(img)
+                labels.append(label)
+    return data, labels
+
 def getAllRDMs(opt, data, labels):
-    # model_nums = [1,5,10,15,20,25,29]
     model_nums = [1,15,29]
     nums = [1,15,30]
     fig, ax = plt.subplots(1,3)
@@ -297,24 +312,17 @@ def getAllRDMs(opt, data, labels):
         outputs = []
 
         # get output for each class
-        # for step, (img, label) in enumerate(data):
         for step, img in enumerate(data):
             n_patches_x, n_patches_y = None, None
             loss, _, output, accuracies = model(img, labels[step])
             #output = model.module.encoder[0].model.Conv1.forward(img)
-            
-            
             #output, _, _, _, _, _ = model.module.encoder[0].forward(img, n_patches_x, n_patches_y, labels[step])
-            
-            #output = output[1:2, :, :, :].detach()
             output = output.detach()
             outputs.append(output)
 
-        print(len(outputs))
         RDM = torch.empty(1,64,49,49)
 
         finals = []
-
         for row in range(10): # needs to be 10
             a = outputs[row]
             a_mean = torch.mean(a)
@@ -371,7 +379,6 @@ def getGradWRTWeights():
             opt, reload_model=True, calc_loss=False
         )
 
-        
         grads = torch.sum(model.module.encoder[0].model.Conv1.conv1.weight.grad)
 
 
@@ -397,18 +404,6 @@ def draw_grad_weight_heatmap(data, name, title, ax ):
     kernels = np.arange(1, len(data)+1, 4)
     epochs = np.arange(1, len(data[0])+1, 4)
 
-    #cmap = plt.get_cmap('PuOr')
-    # # extract all colors from the .jet map
-    # cmaplist = [cmap(i) for i in range(cmap.N)]
-    # # create the new map
-    # cmap = cmap.from_list('Custom cmap', cmaplist, cmap.N)
-
-    # bounds = np.arange(np.min(data),np.max(data),.5)
-    # idx=np.searchsorted(bounds,0)
-    # bounds=np.insert(bounds,idx,0)
-    # norm = BoundaryNorm(bounds, cmap.N)
-
-    
     norm = colors.TwoSlopeNorm(vmin=np.min(data), vcenter=0, vmax=np.max(data))
     
     # im = ax.imshow(data, vmin=0, vmax=4)
@@ -433,22 +428,20 @@ def draw_grad_weight_heatmap(data, name, title, ax ):
     
     name = name + ".png"
     return ax, im
-    # plt.savefig(name)
-    #plt.clf()
 
 def draw_grad_weight_heatmap_multiple(d, name, ep):
     fig, ax = plt.subplots(1, 5)
     fig.subplots_adjust(bottom=0.1, top=0.9, left=0.1, right=0.9,
                     wspace=0.33, hspace=0.05)
     
-    max_d = np.max(d)
-    min_d = np.min(d)
+    # max_d = np.max(d)
+    # min_d = np.min(d)
 
     for idx, data in enumerate(d):
         # max_d = np.max(data)
         # min_d = np.min(data)
-        data = (data-min_d)
-        data = data /(max_d-min_d)
+        # data = (data-min_d)
+        # data = data /(max_d-min_d)
 
         data = np.array(data)
         data = np.transpose(data)
@@ -460,8 +453,6 @@ def draw_grad_weight_heatmap_multiple(d, name, ep):
         ax[idx].set_yticks(kernels)
         ax[idx].set_xticklabels(epochs, fontsize=8)
         ax[idx].set_yticklabels(kernels, fontsize=8)
-        
-        
         
         plt.setp(ax[idx].get_xticklabels(), rotation=45, ha="right",
             rotation_mode="anchor")
@@ -477,138 +468,115 @@ def draw_grad_weight_heatmap_multiple(d, name, ep):
     plt.savefig(name)
     plt.clf()
 
+def getAvgGrad(layer):
+    df = []
+    titles = ['gim', 'gs', 'cpc', 'fs']
+    if (layer == 0):
+        ### Layer 1
+        df.append(pd.read_csv('gim_avg_grad.csv'))
+        df.append(pd.read_csv('gs_conv2_grad.csv'))
+        df.append(pd.read_csv('cpc-conv1-avg.csv'))
+        df.append(pd.read_csv('fs-avg-conv1.csv'))
+    else:
+        ### Layer 2
+        df.append(pd.read_csv('gim-avg-grad_2.csv'))
+        df.append(pd.read_csv('gs_conv1_grad.csv'))
+        df.append(pd.read_csv('cpc-conv2-avg.csv'))
+        df.append(pd.read_csv('fs-avg-conv2.csv'))
+
+    for i in range(4):
+        plt.plot(df[i]['Step'], df[i]['Value'])
+        plt.ylim([-0.01,0.01])
+        plt.xlabel('epoch')
+        plt.ylabel('gradient')
+        name = "conv2_avg_" + titles[i] + ".png"
+        plt.tight_layout()
+        plt.savefig(name)
+        plt.clf()
+
+def normGradsHeatmap(data):
+    titles = ['gim', 'greedy supervised', 'cpc', 'supervised']
+    kernels = np.arange(1, len(data)+1, 4)
+    epochs = np.arange(1, len(data[0])+1, 4)
+
+    im = plt.imshow(data, vmin=0, vmax=1)
+
+    plt.colorbar(im)
+    plt.xticks(epochs)
+    plt.yticks(kernels)
+    plt.gca().invert_yaxis()
+    plt.xlabel('Epoch')
+    plt.ylabel('Input')
+    plt.subplots_adjust(left=0.1, bottom=None, right=None, top=None, wspace=0.6, hspace=0)
+
+    name = "conv1-" + titles[idx] + ".png"
+    plt.savefig(name)
+    plt.clf()
+
+
+#visualise simultaneous and iterative loss curve
+def iterLossPlot(s_mod_loss, s_mod_val, i_mod_loss, i_mod_val, name):
+    plt.plot(s_mod_loss, label="simultaneous loss", color="darkblue")
+    plt.plot(s_mod_val, label="simultaneous val", color="darkblue", linestyle="dashed")
+    plt.plot(i_mod_loss, label="iterative loss", color="darkred")
+    plt.plot(i_mod_val, label="iterative val", linestyle="dashed", color="darkred")
+    
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend(loc="upper right")
+    plt.savefig(name)
+    plt.clf()
+
 if __name__ == "__main__":
+    csv.field_size_limit(sys.maxsize)
     opt = arg_parser.parse_args()
 
-    model, _ = load_vision_model.load_model_and_optimizer(
-       opt, reload_model=True, calc_loss=False
-    )
+    # model, _ = load_vision_model.load_model_and_optimizer(
+    #    opt, reload_model=True, calc_loss=False
+    # )
 
-    _, _, train_loader, train_dataset, test_loader, test_dataset = get_dataloader.get_dataloader(opt)
+    # _, _, train_loader, train_dataset, test_loader, test_dataset = get_dataloader.get_dataloader(opt)
 
-    #model.eval()
+    # model.eval()
 
     ## VISUALISE GRADIENTS WRT WEIGHTS OVER EPOCHS ----------------------------------------------------------
     #getGradWRTWeights()
 
-
+    ## VISUALISE WEIGHTS AND ACTIVATIONS --------------------------------------------------------------------
     # getWeightsAndActivations()
-    # examples = enumerate(test_loader)
-    # batch_idx, (example_data, example_targets) = next(examples)
 
-    # print(batch_idx)
-    # print(example_data.shape)
-    # idx = (examples.targets==1)
-    # examples.targets = examples.targets[idx]
-    # examples.data = examples.data[idx]
-
-    # isEncoderGIM(model, test_loader)
-    # visEncoderEnd(model, test_loader)
-
-
-    # RDM --------------------------------------------------------------------------
-    # data = []
-    # labels = []
-    # # Get 10 classes
-    # for i in range(10):
-    #     _, _, train_loader, train_dataset, test_loader, test_dataset = get_dataloader.get_dataloader(opt)
-
-    #     #c = torch.tensor(c, dtype=torch.int64)
-    #     idx = (train_dataset.targets== i)
-    #     train_dataset.targets = train_dataset.targets[idx]
-    #     train_dataset.data = train_dataset.data[idx]
-
-
-    #     t_loader = torch.utils.data.DataLoader(
-    #         train_dataset, batch_size=32
-    #     )
-
-    #     for step, (img, label) in enumerate(t_loader):
-    #         if (step == 1):
-    #             data.append(img)
-    #             labels.append(label)
-
+    ## RDMs --------------------------------------------------------------------------
+    # data, labels = getDataAndLabelsRDMs()
     # getAllRDMs(opt, data, labels)
     
-    # get Loss ------------------------------------------------------------------------
+    ## Loss for 4 models ------------------------------------------------------------------------
     # getLossPlot()
 
-    # average grad ----------------------------------------------------------------
-    # x = []
-    # y = []
-    
-    # df = []
-    # titles = ['gim', 'gs', 'cpc', 'fs']
+    ## average grad ----------------------------------------------------------------
+    # getAvgGrad(0) # layer1
+    # getAvgGrad(1) # layer2
 
-    # df.append(pd.read_csv('gim_avg_grad.csv'))
-    # df.append(pd.read_csv('gs_conv2_grad.csv'))
-    # df.append(pd.read_csv('cpc-conv1-avg.csv'))
-    # df.append(pd.read_csv('fs-avg-conv1.csv'))
-
-    # # df.append(pd.read_csv('gim-avg-grad_2.csv'))
-    # # df.append(pd.read_csv('gs_conv1_grad.csv'))
-    # # df.append(pd.read_csv('cpc-conv2-avg.csv'))
-    # # df.append(pd.read_csv('fs-avg-conv2.csv'))
-    
-
-    # for i in range(4):
-
-    #     print(df[i]['Step'])
-    #     print(df[i]['Value'])
-    #     plt.plot(df[i]['Step'], df[i]['Value'])
-    #     plt.ylim([-0.04,0.04])
-    #     plt.xlabel('epoch')
-    #     # plt.text(0.5, 0.04, 'Epoch', ha='center')
-    #     # plt.subplots_adjust(left=0.1, bottom=None, right=None, top=None, wspace=0.6, hspace=0)
-    #     name = "conv1_avg_" + titles[i] + ".png"
-    #     plt.savefig(name)
-    #     plt.clf()
-    # plt.title('GS Average Gradients')
-    
-
-
-    # display gradients - .csv - conv1 ---------------------------
-    csv.field_size_limit(sys.maxsize)
-    # titles = ['gim', 'greedy supervised', 'cpc', 'supervised']
+    ### display gradients - .csv - conv1 ---------------------------
     # grads = []
 
-    # # These are raw values not normalised
-    # grads.append(np.genfromtxt("gim-csv/conv1.csv", delimiter=','))
+    # grads.append(np.genfromtxt("gim-csv/conv1.csv", delimiter=',')) # These are raw values not normalised
     # grads.append(np.genfromtxt("gs-csv/conv1.csv", delimiter=','))
     # grads.append(np.genfromtxt("cpc-csv/conv1.csv", delimiter=','))
     # grads.append(np.genfromtxt("fs-csv/conv1.csv", delimiter=','))
 
-    # # max_d = np.max(grads)
-    # # min_d = np.min(grads)
+    # # max_d = np.max(grads) # for across models
+    # # min_d = np.min(grads) # for across models
 
-    # # fig, ax = plt.subplots(1,4)
     # for idx, data in enumerate(grads):
-    #     max_d = np.max(data)
-    #     min_d = np.min(data)
+    #     max_d = np.max(data) # for per model
+    #     min_d = np.min(data) # for per model
     
     #     data = (data-min_d)
     #     data = data /(max_d-min_d)
-
     #     data = np.transpose(data)
 
-    #     kernels = np.arange(1, len(data)+1, 4)
-    #     epochs = np.arange(1, len(data[0])+1, 4)
+    #     normGradsHeatmap(data)
         
-    #     # im = plt.imshow(gim_conv1_grads, cmap=plt.cm.RdBu)
-    #     im = plt.imshow(data, vmin=0, vmax=1)
-
-    #     plt.colorbar(im)
-    #     plt.xticks(epochs)
-    #     plt.yticks(kernels)
-    #     plt.gca().invert_yaxis()
-    #     plt.xlabel('Epoch')
-    #     plt.ylabel('Input')
-    #     plt.subplots_adjust(left=0.1, bottom=None, right=None, top=None, wspace=0.6, hspace=0)
-
-    #     name = "conv1-" + titles[idx] + ".png"
-    #     plt.savefig(name)
-    #     plt.clf()
-
     # display gradients norm across kernels - .csv - conv2 ---------------------------
     # models = ['gim-csv/', 'gs-csv/', 'cpc-csv/', 'fs-csv/']
     # titles = ['gim', 'greedy supervised', 'cpc', 'supervised']
@@ -617,47 +585,40 @@ if __name__ == "__main__":
     #     grads = []
     #     for i in range(5):
     #         name = model + "conv2_" + str(i) + ".csv" 
-    #         print(name)
     #         data = np.genfromtxt(name, delimiter=',')
-    #         print(data.shape)
-    #         print(data[0])
     #         grads.append(data)
     #     fname = "conv2-" + titles[idx]
     #     draw_grad_weight_heatmap_multiple(grads, fname, 30)
     
-    # display gradients norm across models - .csv - conv2 ---------------------------
-    models = ['gim-csv/', 'gs-csv/', 'cpc-csv/', 'fs-csv/']
-    titles = ['gim', 'greedy supervised', 'cpc', 'supervised']
+    ## display gradients norm across models - .csv - conv2 ---------------------------
+    # models = ['gim-csv/', 'gs-csv/', 'cpc-csv/', 'fs-csv/']
+    # titles = ['gim', 'greedy supervised', 'cpc', 'supervised']
     
-    grads = []
-    for idx, model in enumerate(models):
-        m_grads = []
-        for i in range(5):
-            name = model + "conv2_" + str(i) + ".csv" 
-            print(name)
-            data = np.genfromtxt(name, delimiter=',')
-            print(data.shape)
-            print(data[0])
-            m_grads.append(data)
-        grads.append(m_grads)
+    # grads = []
+    # for idx, model in enumerate(models):
+    #     m_grads = []
+    #     for i in range(5):
+    #         name = model + "conv2_" + str(i) + ".csv" 
+    #         data = np.genfromtxt(name, delimiter=',')
+    #         m_grads.append(data)
+    #     grads.append(m_grads)
     
-    max_d = np.max(grads)
-    min_d = np.min(grads)
-    for idx, g in enumerate(grads):
-        data = (g-min_d)
-        data = data /(max_d-min_d)
-        fname = "conv2-" + titles[idx]
-        draw_grad_weight_heatmap_multiple(data, fname, 30)
+    # max_d = np.max(grads)
+    # min_d = np.min(grads)
+    # for idx, g in enumerate(grads):
+    #     data = (g-min_d)
+    #     data = data /(max_d-min_d)
+    #     fname = "conv2-" + titles[idx]
+    #     draw_grad_weight_heatmap_multiple(data, fname, 30)
 
-    # compare difference in gradients between models - .csv - conv1 ---------------------------
-    # csv.field_size_limit(sys.maxsize)
+    ## compare difference in gradients between models - .csv - conv1 ---------------------------
+    result = {}
+    gim_conv1_grads = np.genfromtxt("gim-csv/conv1.csv", delimiter=',')
+    gs_conv1_grads = np.genfromtxt("gs-csv/conv1.csv", delimiter=',')
+    cpc_conv1_grads = np.genfromtxt("cpc-csv/conv1.csv", delimiter=',')
+    fs_conv1_grads = np.genfromtxt("fs-csv/conv1.csv", delimiter=',')
 
-    # result = {}
-    # gim_conv1_grads = np.genfromtxt("gim-csv/conv1.csv", delimiter=',')
-    # gs_conv1_grads = np.genfromtxt("gs-csv/conv1.csv", delimiter=',')
-    # cpc_conv1_grads = np.genfromtxt("cpc-csv/conv1.csv", delimiter=',')
-    # fs_conv1_grads = np.genfromtxt("fs-csv/conv1.csv", delimiter=',')
-
+    # un-norm grads diff ---------------------
     # fig, ax = plt.subplots(2,3)
     # plt.set_cmap('PuOr')
 
@@ -684,6 +645,51 @@ if __name__ == "__main__":
     # plt.subplots_adjust(left=0.1, bottom=None, right=None, top=None, wspace=0.6, hspace=0)
 
     # plt.savefig("grad_compare.png")
+
+    # norm grads --------------------------------------------------
+    # all_grads = []
+    # all_grads.append(gim_conv1_grads)
+    # all_grads.append(gs_conv1_grads)
+    # all_grads.append(cpc_conv1_grads)
+    # all_grads.append(fs_conv1_grads)
+
+    # max_d = np.max(all_grads)
+    # min_d = np.min(all_grads)
+
+    # norm_grads = []
+    # for idx, g in enumerate(all_grads):
+
+    #     data = (g-min_d)
+    #     data = data /(max_d-min_d)
+
+    #     norm_grads.append(data)
+
+    # fig, ax = plt.subplots(2,3)
+    # plt.set_cmap('PuOr')
+
+    # gim_gs = norm_grads[0] - norm_grads[1]
+    # ax[0,0],im = draw_grad_weight_heatmap(gim_gs, "gim_gs","gim vs greedy supervised", ax[0,0])
+
+    # gim_cpc = norm_grads[0] - norm_grads[2]
+    # ax[0, 1], im = draw_grad_weight_heatmap(gim_cpc, "gim_cpc", "gim vs cpc", ax[0,1])
+
+    # gim_fs = norm_grads[0] - norm_grads[3]
+    # ax[0, 2], im =draw_grad_weight_heatmap(gim_fs, "gim_fs", "gim vs supervised", ax[0,2])
+
+    # cpc_gs = norm_grads[2] - norm_grads[1]
+    # ax[1,0], im =draw_grad_weight_heatmap(cpc_gs, "cpc_gs", "cpc vs greedy supervised", ax[1,0])
+
+    # cpc_fs = norm_grads[2] - norm_grads[3]
+    # ax[1,1], im =draw_grad_weight_heatmap(cpc_fs, "cpc_fs", "cpc vs supervised", ax[1,1])
+
+    # gs_fs = norm_grads[1] - norm_grads[3]
+    # ax[1,2], im =draw_grad_weight_heatmap(gs_fs, "gs_fs", "greedy supervised vs supervised", ax[1,2])
+
+    # fig.text(0.5, 0.04, 'Epoch', ha='center')
+    # fig.text(0.03, 0.5, 'Input', va='center', rotation='vertical')
+    # plt.subplots_adjust(left=0.1, bottom=None, right=None, top=None, wspace=0.6, hspace=0)
+
+    # plt.savefig("grad_compare_norm.png")
 
     # compare difference in gradients between models - .csv - conv2 ---------------------------
     # models = ['gim-csv/', 'gs-csv/', 'cpc-csv/', 'fs-csv/']
@@ -725,33 +731,130 @@ if __name__ == "__main__":
     # plt.savefig("grad2_compare.png")
     
 
-    # ----------------- visualise MNSIT
+    ## visualise MNSIT ----------------- 
     # for idx, (img, label) in enumerate(test_loader):
     #     if (idx == 1):
     #         visTensor("vis_MNIST.png", img,nrow=8)
 
+    ## Loss curve for GIM just GIM ----------------- 
+    # loss = np.load('gim-logs/vision_experiment/train_loss.npy')
 
-    # ----------------- Run classifier on each representation from each layer
+    # plt.plot(loss[0], label="Module 1")
+    # plt.plot(loss[1], label="Module 2")
 
-    # model_nums = [1,15,29]
-    # nums = [1,15,30]
-    # fig, ax = plt.subplots(1,3)
+    # plt.xlabel('Epoch')
+    # plt.ylabel('Loss')
+    # plt.legend(loc="upper right")
+    # plt.savefig("loss_gim.png")
 
-    # for idx,num in enumerate(model_nums):
-    #     opt.model_num = num
+    ## Loss curve for GIM just GIM classification ----------------- 
+    # loss = np.load('gim-logs/linear_model/gim_class/train_loss.npy')
 
-    #     model, _ = load_vision_model.load_model_and_optimizer(
-    #         opt, reload_model=True, calc_loss=False
-    #     )
+    # plt.plot(loss[0])
 
-    #     #loss, _, output, accuracies = model(img, labels[step])
-    #     #output = model.module.encoder[0].model.Conv1.forward(img)
+    # plt.xlabel('Epoch')
+    # plt.ylabel('Loss')
+
+    # plt.savefig("loss_gim.png")
+    # print(loss.shape)
+
+    ## ----------------- accuracy  for GIM just GIM classification
+    # accuracy = np.load('gim-logs/linear_model/gim_class/accuracy.npy')
+    # f_accuracy = np.load('gim-logs/linear_model/gim_class/final_accuracy.npy')
+
+    ## ----------------- Visualise loss for intermediate module
+    # gim = np.load('test-mod-results/gim/mod1/mod1/train_loss.npy',allow_pickle=True)
+    # gs = np.load('test-mod-results/gs/gs-logs/linear_model/mod1/train_loss.npy', allow_pickle=True)
+    # cpc = np.load('test-mod-results/cpc/mod1_final/train_loss.npy', allow_pickle=True) 
+    # fs = np.load('test-mod-results/fs/fs-logs-real/linear_model/mod1/train_loss.npy', allow_pickle=True)
+
+    # plt.plot(gim[0], label="GIM")
+    # plt.plot(cpc[0], label="CPC")
+    # plt.plot(gs[0], label="Greedy Supervised")
+    # plt.plot(fs[0], label="Supervised")
+    
+    # plt.xlabel('Epoch')
+    # plt.ylabel('Loss')
+    # plt.legend(loc="upper right")
+    # plt.savefig("loss_mod1.png")
+    # plt.clf()
+
+    ## Visualise loss for fianal module ----------------- 
+    # gim = np.load('test-mod-results/gim/gim-retest/linear_model/mod2/train_loss.npy',allow_pickle=True)
+    # gs = np.load('test-mod-results/gs/gs-retest/linear_model/mod2/train_loss.npy', allow_pickle=True)
+    # cpc = np.load('test-mod-results/cpc/cpc-retest/linear_model/mod2/train_loss.npy', allow_pickle=True) 
+    # fs = np.load('test-mod-results/fs/fs-logs-real/linear_model/mod2_r/train_loss.npy', allow_pickle=True) 
+
+    # plt.plot(gim[0], label="GIM")
+    # plt.plot(cpc[0], label="CPC")
+    # plt.plot(gs[0], label="Greedy Supervised")
+    # plt.plot(fs[0], label="Supervised")
+    
+    # plt.xlabel('Epoch')
+    # plt.ylabel('Loss')
+    # plt.legend(loc="upper right")
+    # plt.savefig("loss_mod2.png")
+    # plt.clf()
 
 
+    ## accuracy for intermediate module classification ----------------- 
+    # print("ACCURACY 1")
+    # fs = np.load('test-mod-results/fs/fs-logs-real/linear_model/mod1/accuracy.npy', allow_pickle=True)
+    # print(fs)
+    # gs = np.load('test-mod-results/gs/gs-logs/linear_model/mod1/accuracy.npy', allow_pickle=True) 
+    # print(gs)
+    # cpc = np.load('test-mod-results/cpc/mod1_final/accuracy.npy', allow_pickle=True)
+    # print(cpc)
+    # gim = np.load('test-mod-results/gim/mod1/mod1/accuracy.npy',allow_pickle=True) # redo
+    # print(gim)
 
+    ## Visualise accuracy for finalmodule----------------- 
+    # print("ACCURACY 2")
+    # fs = np.load('test-mod-results/fs/fs-logs-real/linear_model/mod2_r/accuracy.npy', allow_pickle=True)
+    # print(fs)
+    # gs = np.load('test-mod-results/gs/gs-retest/linear_model/mod2/accuracy.npy', allow_pickle=True)
+    # print(gs)
+    # cpc = np.load('test-mod-results/cpc/cpc-retest/linear_model/mod2/accuracy.npy', allow_pickle=True)
+    # print(cpc)
+    # gim = np.load('test-mod-results/gim/module_2/accuracy.npy',allow_pickle=True)
+    # print(gim)
 
+    # ----------------- visualise simultaneous and iterative loss curve 1nd module 
+    # sim_mod1_loss = np.load('iter-results/gim-sim-val/vision_experiment/train_loss.npy', allow_pickle=True)
+    # s_mod1_loss = sim_mod1_loss[0]
+    # sim_mod1_val = np.load('iter-results/gim-sim-val/vision_experiment/val_loss.npy', allow_pickle=True)
+    # s_mod1_val = sim_mod1_val[0]
 
+    # iter_mod1_loss = np.load('iter-results/gim-iter-mod1-val/vision_experiment/train_loss.npy', allow_pickle=True)
+    # i_mod1_loss = iter_mod1_loss[0]
+    # iter_mod1_val = np.load('iter-results/gim-iter-mod1-val/vision_experiment/val_loss.npy', allow_pickle=True)
+    # i_mod1_val = iter_mod1_val[0]
 
+    # iterLossPlot(s_mod1_loss, s_mod1_val, i_mod1_loss, i_mod1_val, "loss_iter_mod1.png")
+
+    # ----------------- visualise simultaneous and iterative loss curve  2nd module 
+    # sim_mod2_loss = np.load('iter-results/gim-sim-val/vision_experiment/train_loss.npy', allow_pickle=True)
+    # s_mod2_loss = sim_mod2_loss[1]
+    # sim_mod2_val = np.load('iter-results/gim-sim-val/vision_experiment/val_loss.npy', allow_pickle=True)
+    # s_mod2_val = sim_mod2_val[1]
+
+    # iter_mod2_loss = np.load('iter-results/gim-iter-mod2-val/vision_experiment/train_loss.npy', allow_pickle=True)
+    # i_mod2_loss = iter_mod2_loss[1]
+
+    # iter_mod2_val = np.load('iter-results/gim-iter-mod2-val/vision_experiment/val_loss.npy', allow_pickle=True)
+    # i_mod2_val = iter_mod2_val[1]
+
+    # iterLossPlot(s_mod2_loss, s_mod2_val, i_mod2_loss, i_mod2_val, "loss_iter_mod2.png")
+
+    ## Accuracies for training iteratively ---------------------------------------------------------------
+    # sim_acc = np.load('iter-results/gim-sim-val/linear_model/results/final_accuracy.npy', allow_pickle=True)
+    # print(sim_acc)
+    # sim_acc = np.load('iter-results/gim-iter-mod2-val-class/linear_model/results/accuracy.npy', allow_pickle=True)
+    # print(sim_acc)
+
+    
+
+    
 
 
 
